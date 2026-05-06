@@ -3298,6 +3298,9 @@ const S = {
   hourlyLabels: ['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','now'],
   floorWorkers: null,      // stationId → {login,station,task,process,cls}
   floorFloor: 'P1',
+  arsawRows: null,         // [{priority,station,login,shift,rate}] from Roboscout
+  arsawUrl: '',            // configurable Roboscout/Vantage URL
+  arsawLastFetch: null,    // Date of last successful fetch
   totData: null,           // login → {pp, hours, name} from FCLM timeOnTask
   bcData: null,            // [{login,boardStation,actualStation,status}]
   rateProc: 'afe-pack',
@@ -4776,6 +4779,13 @@ function buildFloorTabs(){
     btn.onclick=()=>{S.floorFloor=f;buildFloorTabs();renderFloorContent()};
     el.appendChild(btn);
   });
+  // ARSAW tab
+  const arsawBtn=document.createElement('button');
+  const arsawCnt=(S.arsawRows||[]).filter(r=>r.login).length;
+  arsawBtn.className='stab'+(S.floorFloor==='ARSAW'?' active':'');
+  arsawBtn.innerHTML=`ARSAW <span style="font-size:10px;color:var(--text3);font-family:monospace">${arsawCnt||''}</span>`;
+  arsawBtn.onclick=()=>{S.floorFloor='ARSAW';buildFloorTabs();renderFloorContent()};
+  el.appendChild(arsawBtn);
   // Update HC family counters
   updateHCFamilyBar();
 }
@@ -4813,6 +4823,151 @@ function updateHCFamilyBar(){
 }
 
 function renderFloor(){buildFloorTabs();renderFloorContent();renderTicketsBanner();}
+
+// ═══════════════════════════════════════════════════════════════════
+//  ARSAW — Station map (Roboscout / Vantage live feed)
+// ═══════════════════════════════════════════════════════════════════
+
+function arsawParseCsv(text) {
+  const rows = [];
+  const lines = text.split(/[\r\n]+/);
+  if (!lines.length) return rows;
+  // Detect header row — if first line has text like "Station" or "Login"
+  let start = 0;
+  if (/station|login|priority/i.test(lines[0])) start = 1;
+  lines.slice(start).forEach(function(line) {
+    const p = line.split(',').map(function(c){ return c.trim(); });
+    if (p.length < 2) return;
+    // Try to find priority and station as first integers
+    let priority = null, station = null, login = '', shift = '', rate = null;
+    // Pattern A: Priority,Station,Login,Shift,Rate,...
+    if (!isNaN(parseInt(p[0])) && !isNaN(parseInt(p[1]))) {
+      priority = parseInt(p[0]); station = parseInt(p[1]);
+      login = p[2] || ''; shift = p[3] || ''; rate = parseFloat(p[4]) || null;
+    }
+    // Pattern B: Station,Login,Shift,Rate,...  (no priority col)
+    else if (!isNaN(parseInt(p[0])) && isNaN(parseInt(p[1]))) {
+      station = parseInt(p[0]);
+      login = p[1] || ''; shift = p[2] || ''; rate = parseFloat(p[3]) || null;
+    }
+    if (station) rows.push({ priority, station, login, shift, rate });
+  });
+  return rows;
+}
+
+function arsawApply(rows, source) {
+  S.arsawRows = rows || [];
+  S.arsawLastFetch = new Date();
+  S.arsawSource = source || 'fetch';
+  if (S.floorFloor === 'ARSAW') renderFloorContent();
+  buildFloorTabs();
+  toast('✓ ARSAW: ' + S.arsawRows.filter(function(r){return r.login;}).length + ' staffed / ' + S.arsawRows.length + ' stations');
+}
+
+function arsawFetch() {
+  var url = (document.getElementById('arsaw-url-inp') || {}).value || S.arsawUrl || '';
+  if (url) S.arsawUrl = url;
+  if (!S.arsawUrl) { toast('⚠ Enter a Roboscout URL first'); return; }
+  if (!bridgeIsReady()) { toast('MAD7 Bridge not installed — cannot fetch'); return; }
+  toast('⏳ Fetching ARSAW data…');
+  bridgeFetch(S.arsawUrl, { method: 'GET' }).then(function(resp) {
+    if (!resp || resp.status !== 200) { toast('⚠ ARSAW fetch failed: HTTP ' + (resp && resp.status)); return; }
+    var rows = arsawParseCsv(resp.responseText);
+    if (!rows.length) { toast('⚠ ARSAW: no rows parsed — check URL / format'); return; }
+    arsawApply(rows, 'bridge');
+  }).catch(function(e) { toast('⚠ ARSAW error: ' + e.message); });
+}
+
+function arsawImportPaste(raw) {
+  if (!raw || !raw.trim()) { toast('Nothing to import'); return; }
+  var rows = arsawParseCsv(raw);
+  if (!rows.length) { toast('ARSAW: no rows parsed — expected Priority,Station,Login,Shift,...'); return; }
+  arsawApply(rows, 'paste');
+}
+
+function renderArsawContent(ct) {
+  var rows = S.arsawRows || [];
+  var lastFetch = S.arsawLastFetch;
+  var rscTarget = 0.80, rscAlert = 0.70;
+
+  // ── Header / controls ──────────────────────────────────────
+  var tsStr = lastFetch ? lastFetch.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : '—';
+  var hdr = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
+    + '<span style="font-size:11px;font-weight:700;color:var(--text1)">ARSAW — Station Map</span>'
+    + '<input id="arsaw-url-inp" placeholder="Roboscout URL…" value="' + (S.arsawUrl||'') + '"'
+    + ' style="flex:1;min-width:180px;font-size:9px;padding:2px 6px;border:1px solid var(--bdr);border-radius:4px;background:var(--card);color:var(--text1)"'
+    + ' onchange="S.arsawUrl=this.value">'
+    + '<button class="btn" onclick="arsawFetch()" style="font-size:10px;padding:3px 10px">🔄 Fetch</button>'
+    + '<button class="btn" onclick="var t=prompt(\'Paste Roboscout CSV:\',\'\');if(t)arsawImportPaste(t)" style="font-size:10px;padding:3px 10px">📋 Paste</button>'
+    + '<span style="font-size:9px;color:var(--text3)">Updated: ' + tsStr + '</span>'
+    + '</div>'
+    + '<div style="font-size:8px;color:var(--text3);margin-bottom:6px">Target 80% &nbsp;|&nbsp; <span style="color:#c0392b">Station in red: below 70%</span></div>';
+
+  if (!rows.length) {
+    ct.innerHTML = hdr + '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px">No ARSAW data.<br>Enter a Roboscout URL and click Fetch, or paste CSV data.</div>';
+    return;
+  }
+
+  // ── Split into 3 columns by station range ─────────────────
+  var sorted = rows.slice().sort(function(a,b){ return a.station - b.station; });
+  var n = sorted.length;
+  var perCol = Math.ceil(n / 3);
+  var cols = [ sorted.slice(0, perCol), sorted.slice(perCol, perCol*2), sorted.slice(perCol*2) ];
+
+  // ── Color helper based on rate ─────────────────────────────
+  function rowBg(r) {
+    if (!r.login) return '';
+    if (r.rate == null) return '#d4edda';
+    if (r.rate >= rscTarget * 500) return '#d4edda';   // green
+    if (r.rate >= rscAlert  * 500) return '#fff3cd';   // yellow
+    return '#f8d7da';                                    // red
+  }
+  function priorityCol(p) {
+    if (p == null) return 'inherit';
+    if (p <= 3)  return '#c0392b';
+    if (p <= 7)  return '#e67e22';
+    return '#155724';
+  }
+
+  // ── Build one mini-table ───────────────────────────────────
+  function buildCol(colRows) {
+    var staffed = colRows.filter(function(r){ return r.login; }).length;
+    var total   = colRows.length;
+    var rscRat  = total ? staffed / total : 0;
+    var rscPct  = Math.round(rscRat * 100);
+    var rscBg   = rscPct >= 80 ? '#d4edda' : rscPct >= 70 ? '#fff3cd' : '#f8d7da';
+    var rscTxt  = rscPct >= 80 ? '#155724' : rscPct >= 70 ? '#856404' : '#c0392b';
+
+    var bodyHtml = colRows.map(function(r) {
+      var bg = rowBg(r);
+      var stCol = (r.priority != null && !r.login) ? '#c0392b' : 'inherit';
+      return '<tr style="background:' + bg + ';border-bottom:1px solid #eee">'
+        + '<td style="padding:1px 3px;text-align:center;font-size:9px;font-weight:700;color:' + priorityCol(r.priority) + ';min-width:22px">' + (r.priority != null ? r.priority : '') + '</td>'
+        + '<td style="padding:1px 4px;font-family:monospace;font-size:9px;font-weight:600;color:' + stCol + '">' + r.station + '</td>'
+        + '<td style="padding:1px 4px;font-size:9px;min-width:62px">' + (r.login || '') + '</td>'
+        + '<td style="padding:1px 4px;font-size:9px;color:#4472c4;white-space:nowrap">' + (r.shift || '') + '</td>'
+        + '</tr>';
+    }).join('');
+
+    return '<table style="border-collapse:collapse;font-size:9px;border:1px solid #ccc">'
+      + '<thead><tr style="background:#263238;color:#fff;font-size:8px;font-weight:700">'
+      + '<th style="padding:2px 3px">Pri</th>'
+      + '<th style="padding:2px 4px">St</th>'
+      + '<th style="padding:2px 4px">Login</th>'
+      + '<th style="padding:2px 4px">Shift</th>'
+      + '</tr></thead>'
+      + '<tbody>' + bodyHtml + '</tbody>'
+      + '<tfoot><tr style="background:' + rscBg + ';font-size:9px;font-weight:700;border-top:2px solid #999">'
+      + '<td colspan="2" style="padding:2px 4px;color:' + rscTxt + '">RSC ' + rscPct + '%</td>'
+      + '<td colspan="2" style="padding:2px 4px;font-family:monospace;color:' + rscTxt + '">' + staffed + ' / ' + total + '</td>'
+      + '</tr></tfoot>'
+      + '</table>';
+  }
+
+  ct.innerHTML = hdr + '<div style="display:flex;gap:10px;overflow-x:auto;align-items:flex-start">'
+    + cols.map(buildCol).join('')
+    + '</div>';
+}
 
 // ═══════════════════════════════════════════════════════════════════
 //  FLOOR PP HIGHLIGHT — filter/dim slots by process path
@@ -4938,6 +5093,7 @@ function applyPPHighlight() {
 
 function renderFloorContent(){
   const ct=document.getElementById('floor-content');
+  if(S.floorFloor==='ARSAW'){ renderArsawContent(ct); return; }
   if(!S.floorWorkers){
     ct.innerHTML=`<div class="empty"><div class="empty-icon">🏭</div><p>Paste Packman data on the Import page to populate the floor map automatically.</p><button class="btn primary" onclick="goPage('import')" style="font-size:12px;padding:8px 18px">Go to Import ↗</button></div>`;
     return;
@@ -12133,7 +12289,7 @@ function initBroadcastChannel() {
 }
 
 // ── localStorage poller — works with bookmarklets and legacy scripts ──
-const LAST_TS = {packman:0, workforce:0, rate:0, boardcheck:0, tot:0, idleh:0, autoflow:0};
+const LAST_TS = {packman:0, workforce:0, rate:0, boardcheck:0, tot:0, idleh:0, autoflow:0, arsaw:0};
 // Per-process rate last-seen timestamps
 const RATE_PROCS_IDS = RATE_PROCS.map(p => p.id);
 RATE_PROCS_IDS.forEach(id => { LAST_TS['rate_'+id] = 0; });
@@ -12157,6 +12313,20 @@ function pollLocalStorage() {
           // Trigger same rollup flow as postMessage handler
           window.dispatchEvent(new MessageEvent('message', { data: { type:'idleh_page', pageType:'rollup', html:d.html, url:d.url||'', ts:d.ts, mad7:true } }));
         }
+      }
+    }
+  } catch(e) {}
+
+  // ARSAW — sent by the Vantage/Roboscout userscript via localStorage
+  try {
+    const raw = localStorage.getItem('mad7_import_arsaw');
+    if(raw) {
+      const d = JSON.parse(raw);
+      if(d.ts > (LAST_TS.arsaw||0)) {
+        LAST_TS.arsaw = d.ts;
+        const parsedRows = arsawParseCsv(d.csv || '');
+        if(parsedRows.length) arsawApply(parsedRows, 'userscript');
+        else if(d.rows && d.rows.length) arsawApply(d.rows, 'userscript');
       }
     }
   } catch(e) {}
