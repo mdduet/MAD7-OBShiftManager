@@ -7,7 +7,7 @@
 // @match        https://vantage.amazon.com/app/fulfillment-dashboards/current-station-work*
 // @match        https://roboscout-dub.amazon.com/*
 // @match        https://roboscout.amazon.com/*
-// @grant        none
+// @grant        GM_setValue
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -84,22 +84,21 @@
   }
 
   // ── Send to MAD7 tool ─────────────────────────────────────────────
+  // PRIMARY: GM_setValue — Bridge userscript on file:// relays via GM_getValue.
+  // FALLBACK: window.opener.postMessage if MAD7 opened this tab.
   function sendToMAD7(rows) {
     if (!rows.length) return;
+    var staffed = rows.filter(function(r){return r.login;}).length;
+    var payload = { ts: Date.now(), csv: rowsToCsv(rows), rows: rows, mad7: true };
+    var payloadStr = JSON.stringify(payload);
+
     try {
-      var payload = {
-        ts:   Date.now(),
-        csv:  rowsToCsv(rows),
-        rows: rows,
-        mad7: true,
-      };
-      localStorage.setItem(LS_KEY, JSON.stringify(payload));
-      console.log('[MAD7 ARSAW] Sent ' + rows.length + ' stations (' +
-        rows.filter(function(r){return r.login;}).length + ' staffed)');
+      GM_setValue('mad7_arsaw', payloadStr);
+      console.log('[MAD7 ARSAW] Sent ' + rows.length + ' stations (' + staffed + ' staffed) via GM_setValue.');
     } catch (e) {
-      console.warn('[MAD7 ARSAW] localStorage write failed:', e);
+      console.warn('[MAD7 ARSAW] GM_setValue failed:', e);
     }
-    // Try postMessage to opener
+
     try {
       if (window.opener && !window.opener.closed) {
         window.opener.postMessage({ type: 'arsaw_stations', rows: rows, ts: Date.now(), mad7: true }, '*');

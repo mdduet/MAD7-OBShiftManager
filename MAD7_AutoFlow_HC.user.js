@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         MAD7 — AutoFlow HC Detector
 // @namespace    https://mad7.internal/autoflow-hc
-// @version      1.1.0
-// @description  Scrapes detected + recommended HC from the AutoFlow MAD7 dashboard and sends to MAD7 OB Shift Manager via localStorage. Uses MutationObserver to wait for the SPA to finish rendering.
+// @version      1.2.0
+// @description  Scrapes detected + recommended HC from the AutoFlow MAD7 dashboard and sends to MAD7 OB Shift Manager. Uses GM_setValue so the Bridge userscript on file:// can pick it up cross-origin.
 // @author       MAD7 Team
 // @match        https://autoflow-cascade-eu.amazon.com/MAD7/dashboard*
-// @grant        none
+// @grant        GM_setValue
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -63,31 +63,33 @@
     return { detected: detected, recommended: recommended };
   }
 
-  // Post data to MAD7 via localStorage so pollLocalStorage() picks it up.
+  // Post data to MAD7.
+  // PRIMARY: GM_setValue — Bridge userscript on file:// polls GM_getValue cross-domain.
+  // FALLBACK: window.opener.postMessage (works if MAD7 opened this tab).
   function sendToMAD7(detected, recommended) {
     var n = Object.keys(detected).length;
     if (n === 0) return;
+    var payload = {
+      type:        'autoflow_hc',
+      detected:    detected,
+      recommended: recommended,
+      ts:          Date.now(),
+      mad7:        true,
+    };
+    var payloadStr = JSON.stringify(payload);
+
+    // Channel 1: GM_setValue (Bridge userscript reads this via GM_getValue on file://)
     try {
-      var payload = {
-        type:        'autoflow_hc',
-        detected:    detected,
-        recommended: recommended,
-        ts:          Date.now(),
-        mad7:        true,
-      };
-      localStorage.setItem('mad7_import_autoflow', JSON.stringify(payload));
-      console.log('[MAD7 AF HC] Sent ' + n + ' PPs to localStorage.');
+      GM_setValue('mad7_af_hc', payloadStr);
+      console.log('[MAD7 AF HC] Sent ' + n + ' PPs via GM_setValue.');
     } catch (e) {
-      console.warn('[MAD7 AF HC] localStorage write failed:', e);
+      console.warn('[MAD7 AF HC] GM_setValue failed:', e);
     }
 
-    // Also try postMessage to any opener (if tool opened this tab)
+    // Channel 2: postMessage to opener (if MAD7 opened this tab)
     try {
       if (window.opener && !window.opener.closed) {
-        window.opener.postMessage(
-          { type:'autoflow_hc', detected:detected, recommended:recommended, ts:Date.now(), mad7:true },
-          '*'
-        );
+        window.opener.postMessage(payload, '*');
       }
     } catch (e) {}
   }
