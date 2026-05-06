@@ -14182,9 +14182,9 @@ function buildPlanCol(opts) {
   const {liveRate,rodPic,afDet,blFor,fN,fD,fPct,riskCol,inp,tiempo} = opts;
 
   // Grand totals for this period
-  let packTUR = 0, p2rTUR = 0, grandPic = 0;
+  let packTUR = 0, p2rTUR = 0, grandPic = 0, p2rPicTotal = 0;
   p1Arr.forEach(p => { packTUR+=p.hc*p.rate; grandPic+=rodPic(p.code||p.id); });
-  p2rArr.forEach(p => { p2rTUR+=p.walls*p.ratePick; grandPic+=rodPic(p.code||p.id); });
+  p2rArr.forEach(p => { p2rTUR+=p.walls*p.ratePick; const _pic=rodPic(p.code||p.id); p2rPicTotal+=_pic; grandPic+=_pic; });
   const grandTUR = packTUR + p2rTUR;
 
   // Pick capacity
@@ -14299,13 +14299,21 @@ function buildPlanCol(opts) {
       <tbody>
       <tr style="background:#d4edda">
         <td style="padding:1px 4px;border:1px solid #e0e0e0;font-weight:700;color:#155724">Current AR</td>
-        <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-weight:700;color:#155724">${Math.round(ar)}</td>
-        <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace">${pickRate}</td>
+        <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#d4edda">${inp(Math.round(ar), "PLAN.perAR."+perKey+".ar=parseFloat(this.value)||"+ar+";renderPlan()", 28, '#155724')}</td>
+        <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#fff3cd">${inp(pickRate, "PLAN.perAR."+perKey+".pickRate=parseInt(this.value)||"+pickRate+";renderPlan()", 34, '#856404')}</td>
       </tr>
       <tr style="background:#f0f4ff">
         <td style="padding:1px 4px;border:1px solid #e0e0e0;color:#4472c4">AR for Plan</td>
         <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#e8f4fd">${inp(Math.ceil(arPlan), "PLAN.perAR."+perKey+".arPlan=parseFloat(this.value)||"+arPlan+";renderPlan()", 28, '#4472c4')}</td>
         <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#fff3cd">${inp(pickRate, "PLAN.perAR."+perKey+".pickRate=parseInt(this.value)||"+pickRate+";renderPlan()", 34, '#856404')}</td>
+      </tr>
+      <tr style="background:${surplusBg}">
+        <td style="padding:1px 4px;border:1px solid #e0e0e0;font-weight:600;color:${surplusCol}">Extra Pickers</td>
+        <td colspan="2" style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-weight:700;color:${surplusCol}">${(pickerSurplus>=0?'+':'')+pickerSurplus}</td>
+      </tr>
+      <tr style="background:${extraBg}">
+        <td style="padding:1px 4px;border:1px solid #e0e0e0;font-weight:600;color:${extraCol}">Extra Pick Cap</td>
+        <td colspan="2" style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-weight:700;color:${extraCol}">${(extraPick>=0?'+':'')+fN(extraPick)}</td>
       </tr>
       </tbody>
     </table>
@@ -14344,7 +14352,6 @@ AR:${Math.round(ar)}</div>
       {code:'PPSingleMediumMix',lbl:'NoSLAMMix', rate:200},
     ];
     const dfltBL = {PPAFE1:{min:230,max:291},PPSingleMedium:{min:60,max:71},PPSingleSIOBC:{min:101,max:132},PPSingleNoSLAM2:{min:152,max:182},PPSingleNoSLAM:{min:377,max:453},PPSingleMediumMix:{min:98,max:117}};
-    const t_hrs  = (tiempo || 45) / 60;
     bufHtml = `<div style="margin-top:4px">
       <div style="font-size:9px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Buffer limits</div>
       <table style="width:100%;border-collapse:collapse;font-size:9px;border:1px solid #bbb">
@@ -14352,7 +14359,6 @@ AR:${Math.round(ar)}</div>
           <th style="padding:1px 3px;border:1px solid #bbb;text-align:left">PP</th>
           <th style="padding:1px 2px;border:1px solid #bbb;text-align:center">Min</th>
           <th style="padding:1px 2px;border:1px solid #bbb;text-align:center">Max</th>
-          <th style="padding:1px 2px;border:1px solid #bbb;text-align:center">HC Needed</th>
         </tr></thead>
         <tbody>${bufDefs.map(b=>{
           const live=blFor(b.code), v=live||(dfltBL[b.code]||{min:0,max:0});
@@ -14360,8 +14366,7 @@ AR:${Math.round(ar)}</div>
           const inpStyle='width:38px;background:transparent;border:1px solid rgba(0,0,0,.15);border-radius:2px;font-size:9px;font-family:monospace;padding:0 2px;outline:none;text-align:center;color:#333';
           const minInp=`<input value="${v.min}" style="${inpStyle}" onchange="if(!BL_STATE.limits['${b.code}'])BL_STATE.limits['${b.code}']={min:${v.min},max:${v.max}};BL_STATE.limits['${b.code}'].min=parseInt(this.value)||0;renderPlan()">`;
           const maxInp=`<input value="${v.max}" style="${inpStyle}" onchange="if(!BL_STATE.limits['${b.code}'])BL_STATE.limits['${b.code}']={min:${v.min},max:${v.max}};BL_STATE.limits['${b.code}'].max=parseInt(this.value)||0;renderPlan()">`;
-          const hcNeeded = (b.rate > 0 && t_hrs > 0) ? Math.ceil(v.min / (b.rate * t_hrs)) : '—';
-          return `<tr style="background:#fff"><td style="padding:1px 3px;border:1px solid #ddd;font-size:9px;font-weight:600">${b.lbl}${dot}</td><td style="padding:1px 2px;border:1px solid #ddd;text-align:center">${minInp}</td><td style="padding:1px 2px;border:1px solid #ddd;text-align:center">${maxInp}</td><td style="padding:1px 2px;border:1px solid #ddd;text-align:center;font-family:monospace;font-weight:700;color:#c0392b">${hcNeeded}</td></tr>`;
+          return `<tr style="background:#fff"><td style="padding:1px 3px;border:1px solid #ddd;font-size:9px;font-weight:600">${b.lbl}${dot}</td><td style="padding:1px 2px;border:1px solid #ddd;text-align:center">${minInp}</td><td style="padding:1px 2px;border:1px solid #ddd;text-align:center">${maxInp}</td></tr>`;
         }).join('')}</tbody>
       </table>
     </div>`;
@@ -14409,7 +14414,8 @@ AR:${Math.round(ar)}</div>
           </thead>
           <tbody>${ppRows}</tbody>
           <tfoot><tr style="background:#dce6f1;font-size:9px;font-weight:700;border-top:2px solid #b0c4de">
-            <td colspan="4" style="padding:1px 3px;border:1px solid #bbb"></td>
+            <td colspan="3" style="padding:1px 3px;border:1px solid #bbb"></td>
+            <td style="padding:1px 2px;border:1px solid #bbb;text-align:right;font-family:monospace;color:#4472c4">${packTUR ? fN(packTUR) : '—'}</td>
             <td style="padding:1px 2px;border:1px solid #bbb;text-align:right;font-family:monospace;color:#155724">${ppFootTotalPic ? fN(ppFootTotalPic) : '—'}</td>
             <td colspan="3" style="padding:1px 2px;border:1px solid #bbb"></td>
             <td colspan="2" style="padding:1px 2px;border:1px solid #bbb;text-align:center;font-family:monospace;color:#4472c4">${ppFootTotalAvg ? fN(ppFootTotalAvg) : '—'}</td>
@@ -14433,6 +14439,12 @@ AR:${Math.round(ar)}</div>
             <th style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;min-width:22px">h/w</th>
           </tr></thead>
           <tbody>${p2rRows}</tbody>
+          <tfoot><tr style="background:#d5e8d4;font-size:9px;font-weight:700;border-top:2px solid #82b366">
+            <td colspan="4" style="padding:1px 3px;border:1px solid #bbb"></td>
+            <td style="padding:1px 2px;border:1px solid #bbb;text-align:right;font-family:monospace;color:#4472c4">${p2rTUR ? fN(p2rTUR) : '—'}</td>
+            <td style="padding:1px 2px;border:1px solid #bbb;text-align:right;font-family:monospace;color:#155724">${p2rPicTotal ? fN(p2rPicTotal) : '—'}</td>
+            <td colspan="3" style="padding:1px 2px;border:1px solid #bbb"></td>
+          </tr></tfoot>
         </table>
       </div>
     </div>
