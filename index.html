@@ -1834,42 +1834,6 @@ select.ab-lf-input{cursor:pointer}
         </details>
       </div>
 
-      <!-- ROSTER — auto via userscript or manual paste -->
-      <div style="flex:1;min-width:220px;background:var(--bg2);border:1px solid var(--bdr2);border-radius:var(--r);padding:14px 16px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--blue)"></div>
-          <div style="font-size:11px;font-weight:700;color:var(--blue)">ROSTER</div>
-        </div>
-        <div style="font-size:10px;color:var(--text3);margin-bottom:10px;font-family:monospace">FCLM → MAD7 Employee Roster</div>
-
-        <!-- Auto mode — userscript -->
-        <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:6px;padding:10px;margin-bottom:10px">
-          <div style="font-size:10px;font-weight:700;color:var(--blue);margin-bottom:5px">⚡ AUTOMATIC (with userscript)</div>
-          <div style="font-size:9px;color:var(--text2);line-height:1.5;margin-bottom:7px">Install the MAD7 Roster userscript once → then just click Open FCLM and it imports automatically.</div>
-          <div style="display:flex;gap:6px">
-            <button onclick="openFCLMRoster()"
-              style="flex:1;padding:8px;background:var(--blue);color:#fff;border:none;border-radius:var(--r-sm);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">
-              Open FCLM ↗
-            </button>
-            <button onclick="showRosterScriptModal()"
-              style="padding:8px 10px;background:var(--bg3);color:var(--blue);border:1px solid rgba(59,130,246,.4);border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">
-              Get script
-            </button>
-          </div>
-          <div id="roster-auto-status" style="font-size:9px;color:var(--green);margin-top:5px;min-height:12px;text-align:center"></div>
-        </div>
-
-        <!-- Manual paste fallback -->
-        <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:4px">📋 Or paste FCLM page (Ctrl+A Ctrl+C):</div>
-        <textarea id="roster-paste" rows="3"
-          placeholder="Paste FCLM page content here → imports automatically"
-          style="width:100%;background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;color:var(--text);font-size:10px;padding:7px;font-family:monospace;resize:vertical;outline:none;box-sizing:border-box"
-          onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--bdr2)'"></textarea>
-        <button onclick="importRosterPaste()" style="margin-top:5px;width:100%;padding:7px;background:var(--bg3);color:var(--blue);border:1px solid rgba(59,130,246,.4);border-radius:var(--r-sm);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">
-          Import paste
-        </button>
-        <div id="roster-status" style="font-size:10px;min-height:18px;margin-top:6px;text-align:center;font-weight:600"></div>
-      </div>
 
       <!-- SKILLMATRIX — file or paste -->
       <div style="flex:1;min-width:220px;background:var(--bg2);border:1px solid var(--bdr2);border-radius:var(--r);padding:14px 16px">
@@ -1903,30 +1867,14 @@ select.ab-lf-input{cursor:pointer}
     <!-- Gap alerts -->
     <div id="skill-alerts" class="mb"></div>
 
-    <!-- Coverage + Floor workers -->
-    <div class="g2 mb">
-      <div class="card">
-        <div class="card-t">Critical skill coverage</div>
-        <table class="tbl">
-          <thead><tr>
-            <th>Skill</th>
-            <th class="r">Total trained</th>
-            <th class="r" style="color:var(--amber)">Filtered</th>
-            <th class="r">On floor now</th>
-            <th style="width:90px">Bar</th>
-            <th>Status</th>
-          </tr></thead>
-          <tbody id="skill-coverage-body"></tbody>
-        </table>
-      </div>
-      <div class="card">
-        <div class="card-t">Worker skill lookup</div>
-        <input class="inp" id="skill-lookup-input" placeholder="Type login to lookup skills…" oninput="skillLookup()" style="width:100%;margin-bottom:10px">
-        <div id="skill-lookup-result" style="font-size:11px;color:var(--text3)">Enter a login above to see all their skills</div>
-        <div style="margin-top:12px;border-top:1px solid var(--bdr);padding-top:10px">
-          <div class="card-t">On floor now</div>
-          <div id="skill-floor-workers" style="font-size:11px;color:var(--text3)">Load Packman data to see floor workers</div>
-        </div>
+    <!-- Worker skill lookup -->
+    <div class="card mb">
+      <div class="card-t">Worker skill lookup</div>
+      <input class="inp" id="skill-lookup-input" placeholder="Type login to lookup skills…" oninput="skillLookup()" style="width:100%;margin-bottom:10px">
+      <div id="skill-lookup-result" style="font-size:11px;color:var(--text3)">Enter a login above to see all their skills</div>
+      <div style="margin-top:12px;border-top:1px solid var(--bdr);padding-top:10px">
+        <div class="card-t">On floor now</div>
+        <div id="skill-floor-workers" style="font-size:11px;color:var(--text3)">Load Packman data to see floor workers</div>
       </div>
     </div>
 
@@ -3104,67 +3052,6 @@ select.ab-lf-input{cursor:pointer}
   <textarea id="imp-packman-paste" style="display:none"></textarea>
   <textarea id="imp-rate-paste"    style="display:none"></textarea>
 
-  <!-- ── MONTHLY SKILLS REFRESH ── -->
-  <div style="background:var(--bg2);border:2px solid rgba(99,102,241,.35);border-radius:var(--r);padding:16px;margin-bottom:14px">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <span style="font-size:20px">🎓</span>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:700">Monthly Skills Refresh</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:1px">Update all employee training data — do this once a month</div>
-      </div>
-      <div id="skills-refresh-badge" style="margin-left:auto;font-size:10px;padding:3px 8px;border-radius:12px;background:rgba(99,102,241,.12);color:#818cf8;font-weight:600;border:1px solid rgba(99,102,241,.25)">📅 Monthly</div>
-    </div>
-
-    <div style="display:flex;gap:10px;margin-bottom:8px;align-items:flex-start">
-      <div style="min-width:22px;height:22px;background:var(--green);color:#0a1f14;border-radius:50%;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:2px;flex-shrink:0">1</div>
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Import FCLM Roster <span style="color:var(--text3);font-weight:400">— who works at MAD7 + their current shift</span></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button onclick="openFCLMRoster()" style="padding:7px 14px;background:var(--green);color:#0a1f14;border:none;border-radius:var(--r-sm);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">👥 Open Roster in FCLM</button>
-          <div id="roster-auto-status" style="align-self:center;font-size:11px;color:var(--text3)"></div>
-        </div>
-        <div style="font-size:10px;color:var(--text3);margin-top:4px">Script auto-imports on page load. Needs Tampermonkey + Roster v3.1 script installed.</div>
-      </div>
-    </div>
-
-    <div style="height:1px;background:var(--bdr);margin:10px 0"></div>
-
-    <div style="display:flex;gap:10px;align-items:flex-start">
-      <div style="min-width:22px;height:22px;background:#818cf8;color:#fff;border-radius:50%;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:2px;flex-shrink:0">2</div>
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Upload Skills CSV <span style="color:var(--text3);font-weight:400">— training data from any source</span></div>
-        <div id="skills-dropzone"
-          ondragover="event.preventDefault();this.style.borderColor='var(--green)'"
-          ondragleave="this.style.borderColor='rgba(99,102,241,.3)'"
-          ondrop="event.preventDefault();this.style.borderColor='rgba(99,102,241,.3)';handleSkillsFileDrop(event)"
-          style="border:2px dashed rgba(99,102,241,.3);border-radius:var(--r-sm);padding:14px 12px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:8px"
-          onclick="document.getElementById('skills-refresh-input').click()">
-          <div style="font-size:20px;margin-bottom:4px">📂</div>
-          <div style="font-size:12px;font-weight:600;color:var(--text2)">Drop file here or click to browse</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:3px">Accepts: <b>.csv</b> · <b>.xlsx</b> · <b>.xlsm</b> · <b>.html</b> (QuickSight export)</div>
-        </div>
-        <input type="file" id="skills-refresh-input" accept=".csv,.xlsx,.xlsm,.xls,.html,.htm" style="display:none" onchange="importSkillsRefreshFile(this)">
-        <details style="margin-bottom:8px">
-          <summary style="font-size:10px;color:var(--text3);cursor:pointer;padding:4px 0">▸ What format does the CSV need?</summary>
-          <div style="margin-top:6px;padding:10px;background:var(--bg3);border-radius:var(--r-sm);font-size:10px;color:var(--text2);line-height:1.8">
-            <b>Any of these column layouts work:</b><br>
-            <code style="background:var(--bg);padding:1px 4px;border-radius:3px">login, skill_name</code> — simplest format<br>
-            <code style="background:var(--bg);padding:1px 4px;border-radius:3px">login, shift, skill1, skill2, ...</code> — multi-skill per row<br>
-            <code style="background:var(--bg);padding:1px 4px;border-radius:3px">Login, Shift, Training Count, All Trainings</code> — QuickSight format<br><br>
-            <b>How to get this from QuickSight:</b><br>
-            1. Open the OB Skill Matrix dashboard<br>
-            2. Find the data table → click the <b>⋮</b> menu → <b>Export to CSV</b><br>
-            3. Drop the downloaded file here<br><br>
-            <b>Or from any spreadsheet:</b> Export as CSV with login in first column, skills in other columns.
-          </div>
-        </details>
-        <div id="skills-refresh-status" style="font-size:11px;color:var(--text3);min-height:16px;padding:4px 0"></div>
-      </div>
-    </div>
-    <div id="skills-last-refresh" style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--r-sm);font-size:10px;color:var(--text3);display:none">
-      Last refresh: <span id="skills-last-refresh-text"></span>
-    </div>
-  </div>
 
     <!-- ── USERSCRIPTS HUB ── -->
   <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:16px">
@@ -4891,12 +4778,21 @@ function arsawImportPaste(raw) {
   arsawApply(rows, 'paste');
 }
 
+// Pre-defined MAD7 ARSAW station lists by floor (Floor 2=23xx, 3=33xx, 4=43xx)
+var MAD7_ARSAW_STATIONS = {
+  2: [2317,2318,2323,2324,2332,2333,2339,2341,2346,2348,2352,2353,2359,2360,2367,2368,2375,2376,2381,2382],
+  3: [3317,3318,3323,3324,3332,3333,3338,3339,3346,3347,3350,3351,3359,3360,3367,3368,3375,3376,3381,3382],
+  4: [4317,4318,4323,4324,4332,4333,4339,4341,4346,4348,4352,4353,4359,4360,4367,4368,4375,4376,4381,4382],
+};
+
 function renderArsawContent(ct) {
   var rows = S.arsawRows || [];
   var lastFetch = S.arsawLastFetch;
-  var rscTarget = 0.80, rscAlert = 0.70;
 
-  // ── Header / controls ──────────────────────────────────────
+  // Build station → row data lookup from live data
+  var stationMap = {};
+  rows.forEach(function(r) { if (r.station) stationMap[String(r.station)] = r; });
+
   var tsStr = lastFetch ? lastFetch.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : '—';
   var activeCount   = rows.filter(function(r){ return r.active === true; }).length;
   var inactiveCount = rows.filter(function(r){ return r.active === false; }).length;
@@ -4904,7 +4800,8 @@ function renderArsawContent(ct) {
     ? ' <span style="color:#3ecf8e;font-size:9px">●'+activeCount+' active</span>'
       + (inactiveCount ? ' <span style="color:#f43f5e;font-size:9px">●'+inactiveCount+' inactive</span>' : '')
     : '';
-  var srcLabel = S.arsawSource === 'api' ? '🤖 API' : (S.arsawSource === 'paste' ? '📋 Paste' : '🔗 Bridge');
+  var srcLabel = S.arsawSource === 'api' ? '🤖 API' : (S.arsawSource === 'paste' ? '📋 Paste' : (S.arsawSource ? '🔗 Bridge' : '—'));
+
   var hdr = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
     + '<span style="font-size:11px;font-weight:700;color:var(--text1)">ARSAW — Station Map</span>'
     + '<button class="btn" onclick="arsawAutoFetch()" style="font-size:10px;padding:3px 10px;background:#3ecf8e;color:#0a1f14;border-color:#3ecf8e">🤖 Auto</button>'
@@ -4914,77 +4811,80 @@ function renderArsawContent(ct) {
     + '<button class="btn" onclick="arsawFetch()" style="font-size:10px;padding:3px 8px">🔄</button>'
     + '<button class="btn" onclick="var t=prompt(\'Paste Roboscout CSV:\',\'\');if(t)arsawImportPaste(t)" style="font-size:10px;padding:3px 8px">📋</button>'
     + '<span style="font-size:9px;color:var(--text3)">' + srcLabel + ' · ' + tsStr + actBadge + '</span>'
-    + '</div>'
-    + '<div style="font-size:8px;color:var(--text3);margin-bottom:6px">Target 80% &nbsp;|&nbsp; <span style="color:#c0392b">Red: below 70%</span> &nbsp;|&nbsp; <span style="color:#3ecf8e">●</span>=active <span style="color:#f43f5e">●</span>=inactive</div>';
+    + '</div>';
 
-  if (!rows.length) {
-    ct.innerHTML = hdr + '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px">No ARSAW data.<br><button class="btn" onclick="arsawAutoFetch()" style="margin:8px auto;display:block;background:#3ecf8e;color:#0a1f14">🤖 Auto-fetch from PickingConsole+Vantage</button><br>Or enter a Roboscout URL and click 🔄, or paste CSV 📋</div>';
-    return;
-  }
-
-  // ── Split into 3 columns by station range ─────────────────
-  var sorted = rows.slice().sort(function(a,b){ return a.station - b.station; });
-  var n = sorted.length;
-  var perCol = Math.ceil(n / 3);
-  var cols = [ sorted.slice(0, perCol), sorted.slice(perCol, perCol*2), sorted.slice(perCol*2) ];
-
-  // ── Color helper based on rate ─────────────────────────────
-  function rowBg(r) {
-    if (!r.login) return '';
-    if (r.rate == null) return '#d4edda';
-    if (r.rate >= rscTarget * 500) return '#d4edda';   // green
-    if (r.rate >= rscAlert  * 500) return '#fff3cd';   // yellow
-    return '#f8d7da';                                    // red
-  }
   function priorityCol(p) {
     if (p == null) return 'inherit';
     if (p <= 3)  return '#c0392b';
     if (p <= 7)  return '#e67e22';
-    return '#155724';
+    return '#27ae60';
   }
 
-  // ── Build one mini-table ───────────────────────────────────
-  function buildCol(colRows) {
-    var staffed = colRows.filter(function(r){ return r.login; }).length;
-    var total   = colRows.length;
-    var rscRat  = total ? staffed / total : 0;
-    var rscPct  = Math.round(rscRat * 100);
-    var rscBg   = rscPct >= 80 ? '#d4edda' : rscPct >= 70 ? '#fff3cd' : '#f8d7da';
-    var rscTxt  = rscPct >= 80 ? '#155724' : rscPct >= 70 ? '#856404' : '#c0392b';
+  function buildFloorCol(floor, stList) {
+    var staffed = 0;
+    var bodyHtml = stList.map(function(stNum) {
+      var stStr = String(stNum);
+      var r = stationMap[stStr] || {};
+      var hasLogin = !!r.login;
+      if (hasLogin) staffed++;
 
-    var bodyHtml = colRows.map(function(r) {
-      var bg = rowBg(r);
-      var stCol = (r.priority != null && !r.login) ? '#c0392b' : 'inherit';
-      var actDot = r.active !== undefined
-        ? '<span style="color:' + (r.active ? '#3ecf8e' : (r.lastActMin != null && r.lastActMin < 15 ? '#f59e0b' : '#f43f5e')) + ';font-size:9px" title="' + (r.active ? 'Active' : 'Inactive'+(r.lastActMin!=null?' ('+r.lastActMin+'m)':'')) + '">●</span> '
+      var actDot = '';
+      if (hasLogin && r.active !== undefined) {
+        var dotCol = r.active ? '#3ecf8e' : (r.lastActMin != null && r.lastActMin < 15 ? '#f59e0b' : '#f43f5e');
+        var dotTitle = r.active ? 'Active' : 'Inactive' + (r.lastActMin != null ? ' ('+r.lastActMin+'m)' : '');
+        actDot = '<span style="color:'+dotCol+';font-size:9px;margin-right:2px" title="'+dotTitle+'">●</span>';
+      }
+
+      var photoHtml = hasLogin
+        ? '<img src="https://badgephotos.corp.amazon.com/?uid='+r.login+'" '
+          + 'style="width:18px;height:18px;border-radius:50%;object-fit:cover;flex-shrink:0;'
+          + 'vertical-align:middle;margin-right:3px;border:1px solid var(--bdr)" '
+          + 'onerror="this.style.display=\'none\'">'
         : '';
-      var actInfo = !r.active && r.lastActMin != null ? '<span style="font-size:8px;color:#888">'+r.lastActMin+'m</span>' : '';
-      return '<tr style="background:' + bg + ';border-bottom:1px solid #eee">'
-        + '<td style="padding:1px 3px;text-align:center;font-size:9px;font-weight:700;color:' + priorityCol(r.priority) + ';min-width:22px">' + (r.priority != null ? r.priority : '') + '</td>'
-        + '<td style="padding:1px 4px;font-family:monospace;font-size:9px;font-weight:600;color:' + stCol + '">' + (r.station || '?') + '</td>'
-        + '<td style="padding:1px 4px;font-size:9px;min-width:62px">' + actDot + (r.login || '') + actInfo + '</td>'
-        + '<td style="padding:1px 4px;font-size:9px;color:#4472c4;white-space:nowrap">' + (r.shift || r.name || '') + '</td>'
+
+      var upt = r.rate != null ? Math.round(r.rate) : (hasLogin ? '—' : '');
+      var emptyStyle = hasLogin ? '' : 'color:var(--text3)';
+
+      return '<tr style="border-bottom:1px solid #eee">'
+        + '<td style="padding:1px 3px;text-align:center;font-size:9px;font-weight:700;color:'+priorityCol(r.priority)+';min-width:20px">' + (r.priority != null ? r.priority : '') + '</td>'
+        + '<td style="padding:1px 4px;font-family:monospace;font-size:9px;font-weight:600">' + stStr + '</td>'
+        + '<td style="padding:1px 4px;font-size:9px;white-space:nowrap;min-width:88px">'
+          + actDot + photoHtml
+          + (hasLogin ? r.login : '<span style="color:var(--text3);font-size:8px">—</span>')
+          + '</td>'
+        + '<td style="padding:1px 4px;font-size:9px;color:#4472c4;white-space:nowrap">' + (r.shift || '') + '</td>'
+        + '<td style="padding:1px 4px;font-size:9px;font-family:monospace;text-align:right;'+emptyStyle+'">' + upt + '</td>'
         + '</tr>';
     }).join('');
 
-    return '<table style="border-collapse:collapse;font-size:9px;border:1px solid #ccc">'
-      + '<thead><tr style="background:#263238;color:#fff;font-size:8px;font-weight:700">'
+    var rscPct = stList.length ? Math.round(staffed / stList.length * 100) : 0;
+    var rscBg  = rscPct >= 80 ? '#d4edda' : rscPct >= 70 ? '#fff3cd' : '#f8d7da';
+    var rscTxt = rscPct >= 80 ? '#155724' : rscPct >= 70 ? '#856404' : '#c0392b';
+
+    return '<div style="flex:1;min-width:190px">'
+      + '<div style="text-align:center;font-size:10px;font-weight:700;padding:3px 6px;background:#263238;color:#fff;border-radius:4px 4px 0 0">Floor ' + floor + '</div>'
+      + '<table style="border-collapse:collapse;width:100%;font-size:9px;border:1px solid #ccc;border-top:none">'
+      + '<thead><tr style="background:#37474f;color:#fff;font-size:8px;font-weight:700">'
       + '<th style="padding:2px 3px">Pri</th>'
       + '<th style="padding:2px 4px">St</th>'
       + '<th style="padding:2px 4px">Login</th>'
       + '<th style="padding:2px 4px">Shift</th>'
+      + '<th style="padding:2px 4px">UPT</th>'
       + '</tr></thead>'
       + '<tbody>' + bodyHtml + '</tbody>'
-      + '<tfoot><tr style="background:' + rscBg + ';font-size:9px;font-weight:700;border-top:2px solid #999">'
-      + '<td colspan="2" style="padding:2px 4px;color:' + rscTxt + '">RSC ' + rscPct + '%</td>'
-      + '<td colspan="2" style="padding:2px 4px;font-family:monospace;color:' + rscTxt + '">' + staffed + ' / ' + total + '</td>'
+      + '<tfoot><tr style="background:'+rscBg+';font-size:9px;font-weight:700;border-top:2px solid #999">'
+      + '<td colspan="2" style="padding:2px 4px;color:'+rscTxt+'">RSC '+rscPct+'%</td>'
+      + '<td colspan="3" style="padding:2px 4px;font-family:monospace;color:'+rscTxt+'">'+staffed+' / '+stList.length+'</td>'
       + '</tr></tfoot>'
-      + '</table>';
+      + '</table>'
+      + '</div>';
   }
 
-  ct.innerHTML = hdr + '<div style="display:flex;gap:10px;overflow-x:auto;align-items:flex-start">'
-    + cols.map(buildCol).join('')
-    + '</div>';
+  var cols = [2, 3, 4].map(function(f) {
+    return buildFloorCol(f, MAD7_ARSAW_STATIONS[f]);
+  }).join('');
+
+  ct.innerHTML = hdr + '<div style="display:flex;gap:10px;overflow-x:auto;align-items:flex-start">' + cols + '</div>';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -9860,74 +9760,95 @@ function buildFclmActivityUrl(processId, shiftType, customDate) {
     + '&endHourIntraday=' + pad(w.endH) + '&endMinuteIntraday=' + pad(w.endM);
 }
 
-// Fetch all 4 process paths via Bridge and merge results.
-// Uses functionRollup CSV (same working endpoint as rate — activitySummary 404s with processId).
-// Parses with idleParseFCLMHTML which handles both CSV and HTML formats.
+// Build idle worker list from S.totData (populated by totBridgeFetch / idleAutoFetchAll).
+// Uses "percent time on task" column → idlePct = 100 - pctTot for each worker.
+// Cross-references S.rateData to assign process path (pp) labels.
+function idleFromTOT() {
+  if (!S.totData || !Object.keys(S.totData).length) return [];
+
+  // Build login → rateProcId map from S.rateData
+  var loginToProcId = {};
+  if (S.rateData) {
+    Object.keys(S.rateData).forEach(function(procId) {
+      var rows = S.rateData[procId];
+      if (Array.isArray(rows)) rows.forEach(function(r) {
+        if (r.login) loginToProcId[r.login] = procId;
+      });
+    });
+  }
+
+  // Map RATE_PROCS ids to the 4 idle tab PP categories
+  function rateProcToIdlePP(procId) {
+    if (!procId) return '';
+    if (/^afe/.test(procId))  return 'afe';
+    if (/^pick/.test(procId)) return 'pick';
+    if (/^pack/.test(procId)) return 'pack';
+    if (/^sm$|^siobc$|^pms$|^sm2$|^sns/.test(procId)) return 'sm';
+    return '';
+  }
+
+  var workers = [];
+  Object.keys(S.totData).forEach(function(login) {
+    var w = S.totData[login];
+    var idlePct = w.idlePct || 0;
+    if (idlePct < 1) return;
+
+    // Resolve process path: rateData lookup → station-derived → 'unknown'
+    var procId = loginToProcId[login] || '';
+    var pp = procId ? rateProcToIdlePP(procId) : '';
+    if (!pp && w.pp) pp = rateProcToIdlePP(w.pp) || (typeof totStationToPP === 'function' ? totStationToPP(w.pp) : '') || '';
+    if (!pp && w.station) pp = (typeof totStationToPP === 'function' ? totStationToPP(w.station) : '') || '';
+    if (!pp) pp = 'unknown';
+
+    var paidMs = (w.hours || 0) * 3600000;
+    var idleMs = paidMs * (idlePct / 100);
+    workers.push({
+      login:   login,
+      shift:   w.shift || '',
+      name:    w.name  || '',
+      am:      '',
+      idlePct: idlePct,
+      paidMs:  paidMs,
+      idleMs:  idleMs,
+      pp:      pp,
+      process: procId || pp
+    });
+  });
+
+  console.log('[idleFromTOT] built', workers.length, 'idle workers from', Object.keys(S.totData).length, 'TOT entries');
+  return workers;
+}
+
+// Fetch idle data via TOT report (the only FCLM source that has percent time on task).
+// Falls back to the legacy activitySummary/functionRollup path only if TOT fetch fails.
 function idleAutoFetchAll() {
   if (!bridgeIsReady()) { idleSetAutoStatus('⚠️ UFD Bridge not ready'); return; }
-  var sd = idleGetShiftAndDate();
-  var ppKeys = ['sm','pick','pack','afe'];
-  var results = [], done = 0, errors = 0, ts = new Date();
+  idleSetAutoStatus('⏳ Fetching TimeOnTask…');
+  var ts = new Date();
+  var date = new Date().toISOString().slice(0,10);
+  var url = buildTotUrl();
+  console.log('[AutoIdle] TOT URL:', url);
 
-  ppKeys.forEach(function(ppKey) {
-    var actUrl    = buildFclmActivityUrl(IDLE_PP_IDS[ppKey], sd.shiftType, sd.customDate);
-    var rollupUrl = buildRateCsvUrl(IDLE_PP_IDS[ppKey], sd.shiftType, sd.customDate);
-    console.log('[AutoIdle]', ppKey, 'URL:', actUrl);
-
-    function processRaw(raw) {
-      var workers = idleParseFCLMHTML(raw, ppKey);
-      if (!workers.length && raw.indexOf(',') >= 0 && !raw.trimStart().startsWith('<')) {
-        var byFn = parseFclmRateCsv(raw);
-        Object.values(byFn).flat().forEach(function(w) {
-          if (w.idlePct > 0 && w.login)
-            workers.push({ login: w.login, shift: w.shift, idlePct: w.idlePct,
-              paidMs: w.hours * 3600000, idleMs: w.hours * 3600000 * (w.idlePct / 100),
-              pp: ppKey, process: ppKey, name: '', am: '' });
-        });
-      }
-      return workers;
+  bridgeFetch(url, { method: 'GET' }).then(function(resp) {
+    if (!resp) { idleSetAutoStatus('❌ No response — is bridge running?'); return; }
+    var txt = resp.responseText || '';
+    if (/midway|oidc|authentication.required|sign.?in.*required|id="loginForm"|\/login\?|amzn-midway/i.test(txt.slice(0, 1500))) {
+      idleSetAutoStatus('❌ FCLM session expired — log in to fclm-portal.amazon.com');
+      return;
     }
+    if (resp.status !== 200) { idleSetAutoStatus('❌ HTTP ' + resp.status); return; }
 
-    function finalize(workers, hadError) {
-      if (hadError) errors++;
-      if (!workers || !workers.length) {
-        idleSetAutoStatus('ℹ️ ' + ppKey + ': 0 idle workers — check session or try manual import');
-      }
-      results = results.concat(workers || []);
-      done++;
-      idleSetAutoStatus('⏳ ' + done + '/' + ppKeys.length + ' fetched…');
-      if (done === ppKeys.length) idleAutoMerge(results, errors, ts, sd.customDate);
-    }
+    var parsed = parseTimeOnTask(txt);
+    var n = Object.keys(parsed).length;
+    if (n === 0) { idleSetAutoStatus('⚠️ 0 workers in TOT — shift window may not have started yet'); return; }
 
-    function tryRollup() {
-      console.log('[AutoIdle]', ppKey, 'fallback rollup URL:', rollupUrl);
-      bridgeFetch(rollupUrl, { method: 'GET' }).then(function(resp) {
-        if (resp && resp.responseText) {
-          var workers = processRaw(resp.responseText);
-          if (!workers.length) {
-            var preview = resp.responseText.slice(0, 200).replace(/\s+/g,' ');
-            var isLoginPage = /signin|login|authentication|<form/i.test(preview);
-            console.warn('[AutoIdle]', ppKey, '→ 0 workers from rollup. Preview:', preview);
-            if (isLoginPage) idleSetAutoStatus('❌ ' + ppKey + ': session expired — log in to FCLM');
-          }
-          finalize(workers);
-        } else { finalize([], true); }
-      }).catch(function() { finalize([], true); });
-    }
-
-    // Try activitySummary first (contains NPT/idle columns); fall back to functionRollup
-    bridgeFetch(actUrl, { method: 'GET' }).then(function(resp) {
-      if (!resp || !resp.responseText || resp.status === 404) { tryRollup(); return; }
-      var raw = resp.responseText;
-      if (/signin|login|authentication|<form/i.test(raw.slice(0, 800))) { tryRollup(); return; }
-      var workers = processRaw(raw);
-      var hasNPT = workers.some(function(w){ return (w.idlePct||0) > 0; });
-      if (!workers.length || !hasNPT) {
-        console.log('[AutoIdle]', ppKey, 'activitySummary: no NPT data — trying functionRollup');
-        tryRollup(); return;
-      }
-      finalize(workers);
-    }).catch(function() { tryRollup(); });
+    S.totData = parsed;
+    var workers = idleFromTOT();
+    console.log('[AutoIdle] TOT parsed', n, 'workers →', workers.length, 'with idle data');
+    idleAutoMerge(workers, 0, ts, date);
+  }).catch(function(err) {
+    console.error('[AutoIdle] TOT fetch error:', err);
+    idleSetAutoStatus('❌ Network error — check bridge connection');
   });
 }
 
@@ -19787,9 +19708,20 @@ function parseTimeOnTask(html) {
     const name  = iName  >= 0 ? (cells[iName]  || '').trim() : '';
     const shift = iShift >= 0 ? (cells[iShift] || '').trim() : '';
 
+    // ── Idle % = 100 - percent_time_on_task ───────────────────────────
+    let idlePct = 0;
+    if (iPctTot >= 0) {
+      const rawStr = (cells[iPctTot]||'').replace(/,/g,'.').replace(/%/g,'').trim();
+      const rawPct = parseFloat(rawStr);
+      if (!isNaN(rawPct)) {
+        const pctTot = rawPct > 1 ? rawPct : rawPct * 100; // handle both % (85.5) and fraction (0.855)
+        idlePct = Math.max(0, Math.round((100 - pctTot) * 10) / 10);
+      }
+    }
+
     // Keep the entry with more hours (worker may appear in multiple process paths)
     if (!result[login] || hours > (result[login].hours || 0)) {
-      result[login] = { pp, station, hours, name, shift };
+      result[login] = { pp, station, hours, name, shift, idlePct };
     }
   });
 
@@ -19862,6 +19794,11 @@ function totBridgeFetch() {
       return;
     }
     S.totData = parsed;
+    // Also refresh idle data so floor heatmap and idle tab stay in sync
+    try {
+      var _iw = idleFromTOT();
+      if (_iw.length) handleIdleData({ type:'idle', workers:_iw, date:new Date().toISOString().slice(0,10) });
+    } catch(e) {}
     var ts = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
     _totSetStatus('✅ ' + n + ' in-site · ' + ts, 'var(--green)');
     renderOverview();
