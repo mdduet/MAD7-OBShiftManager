@@ -2487,11 +2487,7 @@ select.ab-lf-input{cursor:pointer}
   <!-- CENTER: static controls, HEADCOUNT summary, CPT, Shifts, Breaks -->
   <div id="plan-center" style="width:202px;flex-shrink:0;display:flex;flex-direction:column;gap:4px">
 
-    <!-- HEADCOUNT — red border, Excel layout: AFE x/y, SM: x/y, SNS2, SNS/SNSmix, P2R, AR -->
-    <div style="border:2px solid #e74c3c;border-radius:4px;background:#fff;padding:4px 7px">
-      <div style="font-size:8px;font-weight:800;color:#e74c3c;margin-bottom:3px;letter-spacing:.04em">HEADCOUNT:</div>
-      <div id="plan-hc-summary" style="display:flex;flex-direction:column;gap:2px"></div>
-    </div>
+    <div id="plan-hc-summary" style="display:none"></div>
 
     <!-- %BL/%TUR -->
     <div id="plan-bl-tur" style="border:1px solid #ddd;border-radius:3px;overflow:hidden"></div>
@@ -14197,6 +14193,9 @@ function buildPlanCol(opts) {
   const extraBg  = extraPick < 0 ? '#f8d7da' : '#d4edda';
   const extraCol = extraPick < 0 ? '#c0392b' : '#155724';
 
+  // Display-name overrides for plan tab only
+  const planName = n => ({'PMs':'SNS2','SNS2':'NoSLAMMix'}[n] || n);
+
   // ── PP footer totals (Picables sum + Avg buffer formula) ─
   let ppFootTotalPic = 0, ppFootTotalAvg = 0;
   p1Arr.forEach(p => {
@@ -14228,7 +14227,7 @@ function buildPlanCol(opts) {
     const maxVal  = (bl && bl.max != null && bl.max !== '—') ? Math.round(Number(bl.max) * p.hc) : null;
     const workable = (tur > 0 && pic > 0) ? (pic / tur).toFixed(2) : '—';
     return `<tr style="background:#fff">
-      <td style="padding:1px 3px;border:1px solid #e0e0e0;font-size:9px;font-weight:600;white-space:nowrap">${p.name}</td>
+      <td style="padding:1px 3px;border:1px solid #e0e0e0;font-size:9px;font-weight:600;white-space:nowrap">${planName(p.name)}</td>
       <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:${hcBg}">${hcInp}</td>
       <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center">${rateInp}</td>
       <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:right;font-family:monospace;font-size:9px">${fN(tur)}</td>
@@ -14292,25 +14291,32 @@ function buildPlanCol(opts) {
   const pickCapa = `<div style="border:1px solid #bbb;border-radius:3px;overflow:hidden;margin-top:3px">
     <div style="background:#d6e4f0;font-size:9px;font-weight:700;padding:2px 5px;border-bottom:1px solid #bbb">Pick Capa</div>
     <table style="width:100%;border-collapse:collapse;font-size:9px">
+      <thead><tr style="background:#e8f4fd;font-size:8px;font-weight:700">
+        <th style="padding:1px 4px;border:1px solid #e0e0e0;text-align:left">AR for Plan</th>
+        <th style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center">HC</th>
+        <th style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center">Rate</th>
+      </tr></thead>
+      <tbody>
       <tr style="background:#f0f4ff">
-        <td style="padding:1px 4px;border:1px solid #e0e0e0;color:#555">AR plan <b style="color:#4472c4">${fD(arPlan,1)}</b></td>
+        <td style="padding:1px 4px;border:1px solid #e0e0e0;font-family:monospace;font-weight:800;color:#4472c4">${fD(arPlan,1)}</td>
+        <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace">${Math.round(ar)}</td>
         <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace">${pickRate}</td>
-        <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:right;font-family:monospace;font-weight:700">${fN(planPickTUR)}</td>
       </tr>
       <tr style="background:#d4edda">
-        <td style="padding:1px 4px;border:1px solid #e0e0e0;font-weight:700;color:#155724">Current AR <b>${Math.round(ar)}</b></td>
+        <td style="padding:1px 4px;border:1px solid #e0e0e0;font-weight:700;color:#155724">Current AR</td>
+        <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-weight:700;color:#155724">${Math.round(ar)}</td>
         <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace">${pickRate}</td>
-        <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:right;font-family:monospace;font-weight:700">${fN(pickTUR)}</td>
       </tr>
       <tr style="background:#fff3cd">
-        <td style="padding:1px 4px;border:1px solid #e0e0e0;color:#856404">Needed pickers</td>
-        <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;color:#856404">${pickRate}</td>
-        <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:right;font-family:monospace;font-weight:700;color:#856404">${pickerNeeded} <span style="font-size:8px">pax</span></td>
+        <td style="padding:1px 4px;border:1px solid #e0e0e0;color:#856404">Extra pickers</td>
+        <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-weight:700;color:#856404">${(pickerSurplus>=0?'+':'')+pickerSurplus}</td>
+        <td style="padding:1px 3px;border:1px solid #e0e0e0"></td>
       </tr>
       <tr style="background:${surplusBg}">
-        <td colspan="2" style="padding:1px 4px;border:1px solid #e0e0e0;font-weight:700;color:${surplusCol}">Extra PickCapacity</td>
-        <td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:right;font-family:monospace;font-weight:800;color:${surplusCol}">${(extraPick>=0?'+':'')+fN(extraPick)}</td>
+        <td style="padding:1px 4px;border:1px solid #e0e0e0;font-weight:700;color:${surplusCol}">Extra pick Capacity</td>
+        <td colspan="2" style="padding:1px 3px;border:1px solid #e0e0e0;text-align:right;font-family:monospace;font-weight:800;color:${surplusCol}">${(extraPick>=0?'+':'')+fN(extraPick)}</td>
       </tr>
+      </tbody>
     </table>
   </div>`;
 
@@ -14321,7 +14327,7 @@ function buildPlanCol(opts) {
   </div>`;
 
   // ── Plan text ─────────────────────────────────────────────
-  const ppSummary = p1Arr.map(p=>`${p.name}:${p.hc}`).join('  ');
+  const ppSummary = p1Arr.map(p => { const n=planName(p.name); return n==='AFE'?`${n}:${p.hc}/${p.hc*5}`:`${n}:${p.hc}`; }).join('  ');
   const P2R_MAX_WALLS = 12;
   const p2rSummary = p2rArr.map(p => {
     const warn = p.walls > P2R_MAX_WALLS ? `⚠>${P2R_MAX_WALLS}` : '';
@@ -14339,12 +14345,12 @@ AR:${Math.round(ar)}  Needed:${pickerNeeded}  Extra:${(extraPick>=0?'+':'')+fN(e
   let bufHtml = '';
   if(isCurrent) {
     const bufDefs = [
-      {code:'PPAFE1',           lbl:'AFE_PACK:PPAFE1'},
-      {code:'PPSingleMedium',   lbl:'PACK:PPSingleMedium'},
-      {code:'PPSingleSIOBC',    lbl:'PACK:PPSingleSIOBC'},
-      {code:'PPSingleNoSLAM2',  lbl:'PACK:PPSingleNoSLAM2'},
-      {code:'PPSingleNoSLAM',   lbl:'PACK:PPSingleNoSLAM'},
-      {code:'PPSingleMediumMix',lbl:'PACK:PPSingleNoSLAMMix'},
+      {code:'PPAFE1',           lbl:'PP'},
+      {code:'PPSingleMedium',   lbl:'PP'},
+      {code:'PPSingleSIOBC',    lbl:'PP'},
+      {code:'PPSingleNoSLAM2',  lbl:'PP'},
+      {code:'PPSingleNoSLAM',   lbl:'PP'},
+      {code:'PPSingleMediumMix',lbl:'PP'},
     ];
     const dfltBL = {PPAFE1:{min:230,max:291},PPSingleMedium:{min:60,max:71},PPSingleSIOBC:{min:101,max:132},PPSingleNoSlam2:{min:152,max:182},PPSingleNoSLAM:{min:377,max:453},PPSingleMediumMix:{min:98,max:117}};
     bufHtml = `<div style="margin-top:4px">
@@ -14408,14 +14414,13 @@ AR:${Math.round(ar)}  Needed:${pickerNeeded}  Extra:${(extraPick>=0?'+':'')+fN(e
             </tr>
           </thead>
           <tbody>${ppRows}</tbody>
+          <tfoot><tr style="background:#dce6f1;font-size:9px;font-weight:700;border-top:2px solid #b0c4de">
+            <td colspan="4" style="padding:1px 3px;border:1px solid #bbb"></td>
+            <td style="padding:1px 2px;border:1px solid #bbb;text-align:right;font-family:monospace;color:#155724">${ppFootTotalPic ? fN(ppFootTotalPic) : '—'}</td>
+            <td colspan="3" style="padding:1px 2px;border:1px solid #bbb"></td>
+            <td colspan="2" style="padding:1px 2px;border:1px solid #bbb;text-align:center;font-family:monospace;color:#4472c4">${ppFootTotalAvg ? fN(ppFootTotalAvg) : '—'}</td>
+          </tr></tfoot>
         </table>
-      </div>
-      <div style="background:#dce6f1;border-top:2px solid #b0c4de;padding:4px 8px;display:flex;gap:20px;align-items:center;flex-wrap:wrap">
-        <span style="font-size:8px;color:#4a6a8a;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Picables</span>
-        <span style="font-family:monospace;font-size:11px;font-weight:800;color:#155724">${ppFootTotalPic ? fN(ppFootTotalPic) : '—'}</span>
-        <span style="color:#b0c4de;font-size:10px">|</span>
-        <span style="font-size:8px;color:#4a6a8a;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Avg Buffer Σ</span>
-        <span style="font-family:monospace;font-size:11px;font-weight:800;color:#4472c4">${ppFootTotalAvg ? fN(ppFootTotalAvg) : '—'}</span>
       </div>
     </div>
     <div style="border:1px solid #bbb;border-radius:3px;overflow:hidden;margin-top:1px">
@@ -14499,21 +14504,21 @@ function renderPlan() {
 
   const q2ColEl = document.getElementById('plan-col-q2');
   if(q2ColEl) q2ColEl.innerHTML = buildPlanCol({...colOpts,
-    label:`Q2 · ${SHIFT_NOW}`, hdrBg:'#4472c4', hdrTime:`${PA.q2.start} → ${PA.q2.end}`,
+    label:'Next Plan', hdrBg:'#4472c4', hdrTime:`${PA.q2.start} → ${PA.q2.end}`,
     p1Arr:PLAN.q2p1, p2rArr:PLAN.q2p2r, arrKey:'q2p1', p2rKey:'q2p2r',
     ar:PA.q2.ar, arPlan:PA.q2.arPlan, pickRate:PA.q2.pickRate,
     perKey:'q2', timeStart:PA.q2.start, timeEnd:PA.q2.end, isCurrent:false});
 
   const q3ColEl = document.getElementById('plan-col-q3');
   if(q3ColEl) q3ColEl.innerHTML = buildPlanCol({...colOpts,
-    label:`Q1 · ${SHIFT_NEXT}`, hdrBg:'#70ad47', hdrTime:`${PA.q3.start} → ${PA.q3.end}`,
+    label:'Next Plan', hdrBg:'#70ad47', hdrTime:`${PA.q3.start} → ${PA.q3.end}`,
     p1Arr:PLAN.q3p1, p2rArr:PLAN.q3p2r, arrKey:'q3p1', p2rKey:'q3p2r',
     ar:PA.q3.ar, arPlan:PA.q3.arPlan, pickRate:PA.q3.pickRate,
     perKey:'q3', timeStart:PA.q3.start, timeEnd:PA.q3.end, isCurrent:false});
 
   const q4ColEl = document.getElementById('plan-col-q4');
   if(q4ColEl) q4ColEl.innerHTML = buildPlanCol({...colOpts,
-    label:`Q2 · ${SHIFT_NEXT}`, hdrBg:'#ed7d31', hdrTime:`${PA.q4.start} → ${PA.q4.end}`,
+    label:'Next Plan', hdrBg:'#ed7d31', hdrTime:`${PA.q4.start} → ${PA.q4.end}`,
     p1Arr:PLAN.q4p1, p2rArr:PLAN.q4p2r, arrKey:'q4p1', p2rKey:'q4p2r',
     ar:PA.q4.ar, arPlan:PA.q4.arPlan, pickRate:PA.q4.pickRate,
     perKey:'q4', timeStart:PA.q4.start, timeEnd:PA.q4.end, isCurrent:false});
