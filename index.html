@@ -3000,6 +3000,8 @@ select.ab-lf-input{cursor:pointer}
       <button onclick="openAndImport('workforce')" style="width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:var(--r-sm);font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Open Workforce</button>
       <button onclick="showUserscriptModal('workforce')" style="width:100%;margin-top:6px;padding:6px;background:var(--bg3);color:var(--blue);border:1px solid rgba(59,130,246,.3);border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📥 Get userscript</button>
       <div id="bm-workforce-status" style="margin-top:6px;font-size:11px;color:var(--text3);min-height:16px;text-align:center"></div>
+      <button onclick="pcHCFetch()" style="width:100%;margin-top:8px;padding:8px;background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.3);border-radius:var(--r-sm);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📊 Fetch Pick HC (area snapshot)</button>
+      <div id="bm-pchc-status" style="margin-top:4px;font-size:11px;color:var(--text3);min-height:14px;text-align:center"></div>
     </div>
 
     <!-- RATE -->
@@ -3950,11 +3952,13 @@ function renderOverview() {
   st('ovk-rate',  avgRate ? avgRate+'%' : '—');
 
   // data source dots
+  var pcHCTotal = Object.values(PC_HC_DATA||{}).reduce(function(s,v){return s+v;},0);
   var srcs = [
     {id:'floor',  label:'Packman',  loaded:!!S.floorWorkers},
     {id:'tot',    label:'TimeOnTask',loaded:!!S.totData && Object.keys(S.totData).length>0},
     {id:'rate',   label:'Rate',     loaded:Object.keys(S.rateData||{}).length>0},
     {id:'roster', label:'Roster',   loaded:(ROSTER_DATA||[]).length>0},
+    {id:'pchc',   label:'PC HC ('+(pcHCTotal||'—')+')', loaded:pcHCTotal>0},
   ];
   var dotsEl = document.getElementById('ov-src-dots');
   if (dotsEl) {
@@ -5462,6 +5466,82 @@ function wfcStopAuto() {
   if (WFC_AUTO_TIMER) { clearInterval(WFC_AUTO_TIMER); WFC_AUTO_TIMER = null; }
   var btn = document.getElementById('wfc-auto-btn');
   if (btn) { btn.textContent = '🔄 Auto(' + WFC_AUTO_MIN + 'min)'; btn.onclick = wfcStartAuto; btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }
+}
+
+// ── Picking Console HC (area-details-snapshot) ─────────────────────
+var PC_HC_DATA = {}; // { areaName: activeHC }
+
+function pcHCBuildUrl() {
+  return 'https://picking-console.' + WFC_REGION + '.picking.aft.a2z.com/api/fcs/MAD7/area-details-snapshot';
+}
+
+function pcHCParse(data) {
+  var out = {};
+  var areas = [];
+  if (Array.isArray(data)) {
+    areas = data;
+  } else if (data && typeof data === 'object') {
+    areas = data.areas || data.areaDetails || data.processAreas || data.data || data.results || [];
+    if (!Array.isArray(areas) || !areas.length) {
+      Object.keys(data).forEach(function(k) {
+        var v = data[k];
+        if (typeof v === 'number') { if (v > 0) out[k] = v; }
+        else if (v && typeof v === 'object') {
+          var hc = v.activeAssociates || v.headcount || v.activeCount || v.hc || v.count || 0;
+          if (hc > 0) out[k] = hc;
+        }
+      });
+      return out;
+    }
+  }
+  areas.forEach(function(a) {
+    if (!a) return;
+    var name = a.areaId || a.area || a.processPath || a.processPathId || a.name || a.id || '';
+    var hc   = a.activeAssociates || a.headcount || a.activeCount || a.hc || a.count || 0;
+    if (name) out[name] = (out[name] || 0) + (hc || 0);
+  });
+  return out;
+}
+
+function pcHCFetch(silent) {
+  if (!bridgeIsReady()) {
+    if (!silent) toast('⚠ Bridge not active — install the Tampermonkey bridge first');
+    return;
+  }
+  var url = pcHCBuildUrl();
+  if (!silent) toast('⏳ Fetching Pick HC…');
+  bridgeFetch(url, { method: 'GET' }).then(function(resp) {
+    if (!resp || !resp.responseText) {
+      console.log('[PCH] empty response for:', url);
+      if (!silent) toast('⚠ PC HC: empty response — check region in console');
+      return;
+    }
+    var data;
+    try { data = JSON.parse(resp.responseText); } catch(e) {
+      console.log('[PCH] non-JSON (first 600):', resp.responseText.slice(0, 600));
+      if (!silent) toast('⚠ PC HC: not JSON — see console');
+      return;
+    }
+    console.log('[PCH] raw preview:', JSON.stringify(data).slice(0, 600));
+    var parsed = pcHCParse(data);
+    var total  = Object.values(parsed).reduce(function(s,v){ return s+v; }, 0);
+    if (!total) {
+      console.log('[PCH] 0 HC. Full response:', JSON.stringify(data));
+      if (!silent) toast('⚠ PC HC: 0 pickers — share console to refine parser');
+      return;
+    }
+    PC_HC_DATA = parsed;
+    var ts = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+    var lines = Object.entries(parsed).map(function(e){ return e[0]+': '+e[1]; }).join(' · ');
+    console.log('[PCH] HC per area:', lines);
+    if (!silent) toast('📊 PC HC: ' + total + ' pickers · ' + ts);
+    var el = document.getElementById('bm-pchc-status');
+    if (el) el.textContent = '✓ ' + total + ' pickers · ' + ts;
+    renderOverview();
+  }).catch(function(err) {
+    console.log('[PCH] fetch error:', err);
+    if (!silent) toast('⚠ PC HC fetch failed — check console');
+  });
 }
 
 // ══════════════════════════════════════════════════════════
@@ -9591,40 +9671,64 @@ function idleAutoFetchAll() {
   var results = [], done = 0, errors = 0, ts = new Date();
 
   ppKeys.forEach(function(ppKey) {
-    // Use functionRollup CSV (confirmed working) — activitySummary returns 404 with processId
-    var url = buildRateCsvUrl(IDLE_PP_IDS[ppKey], sd.shiftType, sd.customDate);
-    console.log('[AutoIdle]', ppKey, 'URL:', url);
-    bridgeFetch(url, { method: 'GET' }).then(function(resp) {
-      if (resp && resp.responseText) {
-        var raw = resp.responseText;
-        // Try parsing via idleParseFCLMHTML (handles CSV + HTML)
-        var workers = idleParseFCLMHTML(raw, ppKey);
-        // If no NPT data (functionRollup doesn't always have it), try parseFclmRateCsv
-        // and extract idle from idlePct field
-        if (!workers.length && raw.indexOf(',') >= 0 && !raw.trimStart().startsWith('<')) {
-          var byFn = parseFclmRateCsv(raw);
-          Object.values(byFn).flat().forEach(function(w) {
-            if (w.idlePct >= 0 && w.login) {
-              workers.push({ login: w.login, shift: w.shift, idlePct: w.idlePct,
-                paidMs: w.hours * 3600000, idleMs: w.hours * 3600000 * (w.idlePct / 100),
-                pp: ppKey, process: ppKey, name: '', am: '' });
-            }
-          });
-        }
-        if (!workers.length) {
-          var preview = raw.slice(0, 200).replace(/\s+/g,' ');
-          var isLogin = /signin|login|authentication|<form/i.test(preview);
-          var diag = isLogin ? 'session expired?' : 'NPT columns not in functionRollup CSV — use manual TM idle import';
-          idleSetAutoStatus('ℹ️ ' + ppKey + ': ' + diag);
-          console.warn('[AutoIdle]', ppKey, '→ 0 idle workers. Preview:', preview);
-        }
-        results = results.concat(workers);
-      } else { errors++; }
-    }).catch(function() { errors++; }).finally(function() {
+    var actUrl    = buildFclmActivityUrl(IDLE_PP_IDS[ppKey], sd.shiftType, sd.customDate);
+    var rollupUrl = buildRateCsvUrl(IDLE_PP_IDS[ppKey], sd.shiftType, sd.customDate);
+    console.log('[AutoIdle]', ppKey, 'URL:', actUrl);
+
+    function processRaw(raw) {
+      var workers = idleParseFCLMHTML(raw, ppKey);
+      if (!workers.length && raw.indexOf(',') >= 0 && !raw.trimStart().startsWith('<')) {
+        var byFn = parseFclmRateCsv(raw);
+        Object.values(byFn).flat().forEach(function(w) {
+          if (w.idlePct > 0 && w.login)
+            workers.push({ login: w.login, shift: w.shift, idlePct: w.idlePct,
+              paidMs: w.hours * 3600000, idleMs: w.hours * 3600000 * (w.idlePct / 100),
+              pp: ppKey, process: ppKey, name: '', am: '' });
+        });
+      }
+      return workers;
+    }
+
+    function finalize(workers, hadError) {
+      if (hadError) errors++;
+      if (!workers || !workers.length) {
+        idleSetAutoStatus('ℹ️ ' + ppKey + ': 0 idle workers — check session or try manual import');
+      }
+      results = results.concat(workers || []);
       done++;
       idleSetAutoStatus('⏳ ' + done + '/' + ppKeys.length + ' fetched…');
       if (done === ppKeys.length) idleAutoMerge(results, errors, ts, sd.customDate);
-    });
+    }
+
+    function tryRollup() {
+      console.log('[AutoIdle]', ppKey, 'fallback rollup URL:', rollupUrl);
+      bridgeFetch(rollupUrl, { method: 'GET' }).then(function(resp) {
+        if (resp && resp.responseText) {
+          var workers = processRaw(resp.responseText);
+          if (!workers.length) {
+            var preview = resp.responseText.slice(0, 200).replace(/\s+/g,' ');
+            var isLoginPage = /signin|login|authentication|<form/i.test(preview);
+            console.warn('[AutoIdle]', ppKey, '→ 0 workers from rollup. Preview:', preview);
+            if (isLoginPage) idleSetAutoStatus('❌ ' + ppKey + ': session expired — log in to FCLM');
+          }
+          finalize(workers);
+        } else { finalize([], true); }
+      }).catch(function() { finalize([], true); });
+    }
+
+    // Try activitySummary first (contains NPT/idle columns); fall back to functionRollup
+    bridgeFetch(actUrl, { method: 'GET' }).then(function(resp) {
+      if (!resp || !resp.responseText || resp.status === 404) { tryRollup(); return; }
+      var raw = resp.responseText;
+      if (/signin|login|authentication|<form/i.test(raw.slice(0, 800))) { tryRollup(); return; }
+      var workers = processRaw(raw);
+      var hasNPT = workers.some(function(w){ return (w.idlePct||0) > 0; });
+      if (!workers.length || !hasNPT) {
+        console.log('[AutoIdle]', ppKey, 'activitySummary: no NPT data — trying functionRollup');
+        tryRollup(); return;
+      }
+      finalize(workers);
+    }).catch(function() { tryRollup(); });
   });
 }
 
@@ -9678,6 +9782,7 @@ function idleParseFCLMHTML(raw, ppKey) {
         return [];
       }
       console.log('[AutoIdle]',ppKey,'→ login:'+iLogin+' badge:'+iBadgeL+' npt%:'+iNPTPct+' npt:'+iNPT+' paid:'+iPaid,'of',hdrs.length,'cols');
+      if (iNPTPct < 0 && iNPT < 0) console.log('[AutoIdle]',ppKey,'all headers:',hdrs.join(' | '));
       var currentFnIdle = ppKey;
       var out = [];
       dataRows.forEach(function(cells) {
@@ -19426,14 +19531,17 @@ function parseTimeOnTask(html) {
 
   // Column indices — Station is the key PP source (no "Process Path" column in MAD7 TOT page)
   const iLogin   = hdrs.findIndex(h => /^login$|^user.?id$|^alias$|employee.?alias|alias.?login|inicio.ses/i.test(h.trim()));
+  const iBadge   = hdrs.findIndex(h => /^employee.?id$|^employee.?number$|^badge/i.test(h.trim())); // TOT report uses "employee id" = numeric badge
   const iStation = hdrs.findIndex(h => /^station$|^workstation$|^estaci/i.test(h.trim()));
   const iPP      = hdrs.findIndex(h => /process.?path|^process$|^function$|task.?type/i.test(h.trim()));
   const iHours   = hdrs.findIndex(h => /time.?on.?task|^tot$/i.test(h.trim()));
+  const iPctTot  = hdrs.findIndex(h => /percent.?time.?on.?task|%.*time.*task|time.*task.*%/i.test(h.trim())); // "percent time on task"
   const iPaid    = hdrs.findIndex(h => /paid.*hour|^paid$|^hours?$/i.test(h.trim()));
+  const iTotalT  = hdrs.findIndex(h => /^total.?time$|^total.?hours?$/i.test(h.trim())); // TOT report "total time" = paid hours
   const iName    = hdrs.findIndex(h => /employee.?name|^name$|^nombre$|^empleado$/i.test(h.trim()) && !/manager|am\b/i.test(h));
   const iShift   = hdrs.findIndex(h => /^shift$|shift.?code|^turno$/i.test(h.trim()));
 
-  console.log('[TOT] cols — login:', iLogin, 'station:', iStation, 'pp:', iPP, 'hours:', iHours, 'name:', iName, 'shift:', iShift);
+  console.log('[TOT] cols — login:', iLogin, 'badge:', iBadge, 'station:', iStation, 'pp:', iPP, 'hours:', iHours, 'pctTot:', iPctTot, 'name:', iName, 'shift:', iShift);
 
   rows.slice(1).forEach(row => {
     const cells = Array.from(row.querySelectorAll('td')).map(c => c.textContent.trim());
@@ -19444,6 +19552,13 @@ function parseTimeOnTask(html) {
     if (iLogin >= 0) {
       const raw = (cells[iLogin] || '').toLowerCase().replace(/\s/g,'');
       if (isLogin(raw)) login = raw;
+    }
+    // Badge column (TOT report has "employee id" = numeric badge, no alias column)
+    if (!login && iBadge >= 0) {
+      const badge = (cells[iBadge] || '').trim();
+      if (/^\d{5,12}$/.test(badge) && typeof _badgeToLogin === 'function') {
+        login = _badgeToLogin(badge) || '';
+      }
     }
     // Fallback: scan all cells for the first login-shaped value
     if (!login) {
@@ -19463,9 +19578,10 @@ function parseTimeOnTask(html) {
     if (!pp) pp = station; // store station ID as pp — normalizeTotPP handles both formats
 
     // ── Hours ─────────────────────────────────────────────────────────
-    // Use Paid Hours as primary (worker is on-site even if TOT = 0)
+    // Use Paid Hours as primary; fall back to "total time" (TOT report) or time on task
     let hours = 0;
-    if (iPaid >= 0) hours = parseFloat((cells[iPaid] || '0').replace(',','.')) || 0;
+    if (iPaid >= 0)  hours = parseFloat((cells[iPaid]  || '0').replace(',','.')) || 0;
+    if (!hours && iTotalT >= 0) hours = parseFloat((cells[iTotalT] || '0').replace(',','.')) || 0;
     if (!hours && iHours >= 0) hours = parseFloat((cells[iHours] || '0').replace(',','.')) || 0;
 
     // ── Name / Shift ───────────────────────────────────────────────────
@@ -19932,6 +20048,24 @@ function _harmonyRoute(d) {
   if (url.includes('autoflow-cascade')) {
     const detected = afParseHtml(raw);
     if (Object.keys(detected).length) afApply(detected, 'harmony');
+    return;
+  }
+
+  // Picking Console area-details-snapshot → Pick HC per area
+  if (url.includes('area-details-snapshot')) {
+    try {
+      const areaData = JSON.parse(raw);
+      const parsed   = pcHCParse(areaData);
+      const total    = Object.values(parsed).reduce((s,v) => s+v, 0);
+      if (total) {
+        PC_HC_DATA = parsed;
+        const ts2 = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+        const el  = document.getElementById('bm-pchc-status');
+        if (el) el.textContent = '✓ ' + total + ' pickers · ' + ts2;
+        toast('📊 PC HC: ' + total + ' pickers auto-imported');
+        renderOverview();
+      }
+    } catch(e) { console.warn('[PCH] Harmony parse error:', e); }
     return;
   }
 
