@@ -14304,8 +14304,8 @@ function buildPlanCol(opts) {
       </tr>
       <tr style="background:#f0f4ff">
         <td style="padding:1px 4px;border:1px solid #e0e0e0;color:#4472c4">AR for Plan</td>
-        <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#e8f4fd">${inp(Math.ceil(arPlan), \`PLAN.perAR.${perKey}.arPlan=parseFloat(this.value)||${arPlan};renderPlan()\`, 28, '#4472c4')}</td>
-        <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#fff3cd">${inp(pickRate, \`PLAN.perAR.${perKey}.pickRate=parseInt(this.value)||${pickRate};renderPlan()\`, 34, '#856404')}</td>
+        <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#e8f4fd">${inp(Math.ceil(arPlan), "PLAN.perAR."+perKey+".arPlan=parseFloat(this.value)||"+arPlan+";renderPlan()", 28, '#4472c4')}</td>
+        <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#fff3cd">${inp(pickRate, "PLAN.perAR."+perKey+".pickRate=parseInt(this.value)||"+pickRate+";renderPlan()", 34, '#856404')}</td>
       </tr>
       </tbody>
     </table>
