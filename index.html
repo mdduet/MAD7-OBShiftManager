@@ -1315,7 +1315,8 @@ select.ab-lf-input{cursor:pointer}
       </div>
       <!-- Vantage picker buttons -->
       <div style="display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid rgba(16,185,129,.3);border-radius:var(--r-sm);padding:2px 6px">
-        <button onclick="vantageOpenAndPoll()" style="background:none;border:none;color:#34d399;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;padding:2px 4px" title="Open Vantage and start picker polling">⚡ Vantage <span id="vantage-badge" style="display:none;background:#34d399;color:#000;border-radius:8px;padding:0 5px;font-size:10px;margin-left:2px"></span></button>
+        <button onclick="vantageApiFetch(false)" style="background:none;border:none;color:#3ecf8e;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;padding:2px 4px" title="Fetch pick stations directly from Vantage API via bridge (no userscript needed)">🤖 API <span id="vantage-api-badge" style="font-size:9px;color:var(--text3)"></span></button>
+        <button onclick="vantageOpenAndPoll()" style="background:none;border:none;color:#34d399;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;padding:2px 4px;border-left:1px solid var(--bdr2)" title="Open Vantage and start picker polling">⚡ Vantage <span id="vantage-badge" style="display:none;background:#34d399;color:#000;border-radius:8px;padding:0 5px;font-size:10px;margin-left:2px"></span></button>
         <button id="vantage-poll-btn" onclick="vantageStopPoll()" style="display:none;background:none;border:none;color:var(--red);font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif;padding:2px 4px;border-left:1px solid var(--bdr2)" title="Stop Vantage polling">⏹ Stop</button>
         <button onclick="vantageShowUserscript()" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif;padding:2px 4px;border-left:1px solid var(--bdr2)" title="Show Tampermonkey userscript">📋 Script</button>
       </div>
@@ -3300,9 +3301,10 @@ const S = {
   hourlyLabels: ['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','now'],
   floorWorkers: null,      // stationId → {login,station,task,process,cls}
   floorFloor: 'P1',
-  arsawRows: null,         // [{priority,station,login,shift,rate}] from Roboscout
-  arsawUrl: '',            // configurable Roboscout/Vantage URL
+  arsawRows: null,         // [{priority,station,login,shift,rate}] from Roboscout/API
+  arsawUrl: '',            // configurable Roboscout URL (optional when using auto-fetch)
   arsawLastFetch: null,    // Date of last successful fetch
+  pickActivity: null,      // login → {active,lastActMin,lastSeenMin,name} from PickingConsole
   totData: null,           // login → {pp, hours, name} from FCLM timeOnTask
   bcData: null,            // [{login,boardStation,actualStation,status}]
   rateProc: 'afe-pack',
@@ -4896,19 +4898,27 @@ function renderArsawContent(ct) {
 
   // ── Header / controls ──────────────────────────────────────
   var tsStr = lastFetch ? lastFetch.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : '—';
+  var activeCount   = rows.filter(function(r){ return r.active === true; }).length;
+  var inactiveCount = rows.filter(function(r){ return r.active === false; }).length;
+  var actBadge = rows.some(function(r){ return r.active !== undefined; })
+    ? ' <span style="color:#3ecf8e;font-size:9px">●'+activeCount+' active</span>'
+      + (inactiveCount ? ' <span style="color:#f43f5e;font-size:9px">●'+inactiveCount+' inactive</span>' : '')
+    : '';
+  var srcLabel = S.arsawSource === 'api' ? '🤖 API' : (S.arsawSource === 'paste' ? '📋 Paste' : '🔗 Bridge');
   var hdr = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
     + '<span style="font-size:11px;font-weight:700;color:var(--text1)">ARSAW — Station Map</span>'
-    + '<input id="arsaw-url-inp" placeholder="Roboscout URL…" value="' + (S.arsawUrl||'') + '"'
-    + ' style="flex:1;min-width:180px;font-size:9px;padding:2px 6px;border:1px solid var(--bdr);border-radius:4px;background:var(--card);color:var(--text1)"'
+    + '<button class="btn" onclick="arsawAutoFetch()" style="font-size:10px;padding:3px 10px;background:#3ecf8e;color:#0a1f14;border-color:#3ecf8e">🤖 Auto</button>'
+    + '<input id="arsaw-url-inp" placeholder="Roboscout URL (optional)…" value="' + (S.arsawUrl||'') + '"'
+    + ' style="flex:1;min-width:140px;font-size:9px;padding:2px 6px;border:1px solid var(--bdr);border-radius:4px;background:var(--card);color:var(--text1)"'
     + ' onchange="S.arsawUrl=this.value">'
-    + '<button class="btn" onclick="arsawFetch()" style="font-size:10px;padding:3px 10px">🔄 Fetch</button>'
-    + '<button class="btn" onclick="var t=prompt(\'Paste Roboscout CSV:\',\'\');if(t)arsawImportPaste(t)" style="font-size:10px;padding:3px 10px">📋 Paste</button>'
-    + '<span style="font-size:9px;color:var(--text3)">Updated: ' + tsStr + '</span>'
+    + '<button class="btn" onclick="arsawFetch()" style="font-size:10px;padding:3px 8px">🔄</button>'
+    + '<button class="btn" onclick="var t=prompt(\'Paste Roboscout CSV:\',\'\');if(t)arsawImportPaste(t)" style="font-size:10px;padding:3px 8px">📋</button>'
+    + '<span style="font-size:9px;color:var(--text3)">' + srcLabel + ' · ' + tsStr + actBadge + '</span>'
     + '</div>'
-    + '<div style="font-size:8px;color:var(--text3);margin-bottom:6px">Target 80% &nbsp;|&nbsp; <span style="color:#c0392b">Station in red: below 70%</span></div>';
+    + '<div style="font-size:8px;color:var(--text3);margin-bottom:6px">Target 80% &nbsp;|&nbsp; <span style="color:#c0392b">Red: below 70%</span> &nbsp;|&nbsp; <span style="color:#3ecf8e">●</span>=active <span style="color:#f43f5e">●</span>=inactive</div>';
 
   if (!rows.length) {
-    ct.innerHTML = hdr + '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px">No ARSAW data.<br>Enter a Roboscout URL and click Fetch, or paste CSV data.</div>';
+    ct.innerHTML = hdr + '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px">No ARSAW data.<br><button class="btn" onclick="arsawAutoFetch()" style="margin:8px auto;display:block;background:#3ecf8e;color:#0a1f14">🤖 Auto-fetch from PickingConsole+Vantage</button><br>Or enter a Roboscout URL and click 🔄, or paste CSV 📋</div>';
     return;
   }
 
@@ -4945,11 +4955,15 @@ function renderArsawContent(ct) {
     var bodyHtml = colRows.map(function(r) {
       var bg = rowBg(r);
       var stCol = (r.priority != null && !r.login) ? '#c0392b' : 'inherit';
+      var actDot = r.active !== undefined
+        ? '<span style="color:' + (r.active ? '#3ecf8e' : (r.lastActMin != null && r.lastActMin < 15 ? '#f59e0b' : '#f43f5e')) + ';font-size:9px" title="' + (r.active ? 'Active' : 'Inactive'+(r.lastActMin!=null?' ('+r.lastActMin+'m)':'')) + '">●</span> '
+        : '';
+      var actInfo = !r.active && r.lastActMin != null ? '<span style="font-size:8px;color:#888">'+r.lastActMin+'m</span>' : '';
       return '<tr style="background:' + bg + ';border-bottom:1px solid #eee">'
         + '<td style="padding:1px 3px;text-align:center;font-size:9px;font-weight:700;color:' + priorityCol(r.priority) + ';min-width:22px">' + (r.priority != null ? r.priority : '') + '</td>'
-        + '<td style="padding:1px 4px;font-family:monospace;font-size:9px;font-weight:600;color:' + stCol + '">' + r.station + '</td>'
-        + '<td style="padding:1px 4px;font-size:9px;min-width:62px">' + (r.login || '') + '</td>'
-        + '<td style="padding:1px 4px;font-size:9px;color:#4472c4;white-space:nowrap">' + (r.shift || '') + '</td>'
+        + '<td style="padding:1px 4px;font-family:monospace;font-size:9px;font-weight:600;color:' + stCol + '">' + (r.station || '?') + '</td>'
+        + '<td style="padding:1px 4px;font-size:9px;min-width:62px">' + actDot + (r.login || '') + actInfo + '</td>'
+        + '<td style="padding:1px 4px;font-size:9px;color:#4472c4;white-space:nowrap">' + (r.shift || r.name || '') + '</td>'
         + '</tr>';
     }).join('');
 
@@ -5174,10 +5188,21 @@ function renderFloorContent(){
 
     if(w){
       const pal=wPal(sid);const ini=w.login.slice(0,2).toUpperCase();
+      // Activity dot for vtPick slots: green=active, amber=recent, red=inactive
+      const actInfo = w.active !== undefined ? w : ((S.pickActivity||{})[w.login]);
+      if (sid.startsWith('vtPick') && actInfo && actInfo.active !== undefined) {
+        const dot = document.createElement('div');
+        dot.style.cssText = 'position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;z-index:3;';
+        const actMin = actInfo.lastActMin;
+        dot.style.background = actInfo.active ? '#3ecf8e' : (actMin != null && actMin < 15 ? '#f59e0b' : '#f43f5e');
+        dot.title = actInfo.active ? 'Active' : ('Last activity: ' + (actMin != null ? actMin + ' min ago' : '?'));
+        slot.appendChild(dot);
+      }
       const wr=document.createElement('div');wr.className='wrow';wr.dataset.login=w.login;
       wr.style.background=pal.bg;
-      wr.innerHTML=`<img class="wrow-photo" src="https://badgephotos.corp.amazon.com/?uid=${w.login}" alt="${ini}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="wrow-fb" style="background:${pal.bg};color:${pal.fg}">${ini}</div><div class="wrow-info"><div class="wrow-login" style="color:${pal.fg}">${w.login}</div><div class="wrow-proc">${pLabel(w.process,w.task)}</div></div>`;
-      wr.addEventListener('mouseenter',e=>showTip(e,w.login,`Station: ${w.station}`,`Process: ${pLabel(w.process,w.task)}`,ticket?`🎫 Ticket: ${ticket.status.toUpperCase()}${ticket.ticketId?' #'+ticket.ticketId:''}`:''));
+      const actLbl = actInfo && actInfo.active !== undefined ? (actInfo.active ? '' : (actInfo.lastActMin != null ? ' ·'+actInfo.lastActMin+'m' : ' ·⚠')) : '';
+      wr.innerHTML=`<img class="wrow-photo" src="https://badgephotos.corp.amazon.com/?uid=${w.login}" alt="${ini}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="wrow-fb" style="background:${pal.bg};color:${pal.fg}">${ini}</div><div class="wrow-info"><div class="wrow-login" style="color:${pal.fg}">${w.login}${actLbl}</div><div class="wrow-proc">${pLabel(w.process,w.task)}</div></div>`;
+      wr.addEventListener('mouseenter',e=>showTip(e,w.login,`Station: ${w.station}`,`Process: ${pLabel(w.process,w.task)}`,ticket?`🎫 Ticket: ${ticket.status.toUpperCase()}${ticket.ticketId?' #'+ticket.ticketId:''}`:'',actInfo&&actInfo.active!==undefined?`Pick: ${actInfo.active?'Active ✓':'Inactive'+(actInfo.lastActMin!=null?' ('+actInfo.lastActMin+'m ago)':'')}`:'' ));
       wr.addEventListener('mouseleave',hideTip);
       wr.addEventListener('click',()=>flashFloor(w.login));
       slot.appendChild(wr);
@@ -5417,6 +5442,39 @@ function wfcParse(data) {
   if (Array.isArray(data)) {
     rows = data;
   } else if (data && typeof data === 'object') {
+    // pickerStatusList from picking console workforce endpoint
+    // Has active/lastActivityTime but no station — store in S.pickActivity for idle indicators
+    var pickerList = data.pickerStatusList || data.pickerStatus || null;
+    if (pickerList != null) {
+      var pArr = Array.isArray(pickerList) ? pickerList : Object.values(pickerList || {});
+      if (pArr.length) {
+        var now = Date.now() / 1000;
+        if (!S.pickActivity) S.pickActivity = {};
+        pArr.forEach(function(e) {
+          var uid = (e.userId || e.login || '').toLowerCase().replace(/\s/g,'');
+          if (!uid) return;
+          var parts = (e.name||'').split(',');
+          var name  = parts.length >= 2 ? (parts[1].trim()+' '+parts[0].trim()) : (e.name||'').trim();
+          S.pickActivity[uid] = {
+            active:      !!e.active,
+            lastActMin:  e.lastActivityTime ? Math.round((now - e.lastActivityTime)/60) : null,
+            lastSeenMin: e.lastSeenTime     ? Math.round((now - e.lastSeenTime)/60)     : null,
+            name:        name
+          };
+          // Also tag existing vtPick slot if already in floorWorkers
+          if (S.floorWorkers) {
+            var existSlot = Object.keys(S.floorWorkers).find(function(s){ return (S.floorWorkers[s]||{}).login === uid; });
+            if (existSlot) {
+              S.floorWorkers[existSlot].active     = !!e.active;
+              S.floorWorkers[existSlot].lastActMin = S.pickActivity[uid].lastActMin;
+            }
+          }
+        });
+        console.log('[WFC] pickerStatusList:', pArr.length, 'pickers; active:', pArr.filter(function(e){return !!e.active;}).length);
+        return out; // no station data in this format
+      }
+    }
+
     // Unwrap common envelope keys
     var arr = data.associates || data.workers || data.employees || data.data || data.results || data.items || null;
     if (Array.isArray(arr)) {
@@ -5550,6 +5608,7 @@ function pcHCFetch(silent) {
 // ══════════════════════════════════════════════════════════
 
 var VANTAGE_URL = 'https://vantage.amazon.com/app/fulfillment-dashboards/current-station-work?customer=AMZN&warehouse=MAD7&region=eu-west-1&zones=paKivaA02%2CpaKivaA03%2CpaKivaA04';
+var VANTAGE_API_URL = 'https://vantage.amazon.com/api/eu-west-1/fulfillment?dataset=station_work%2Fstations_with_associate_metrics&warehouse=MAD7&zone=paKivaA02%2CpaKivaA03%2CpaKivaA04&region=eu-west-1';
 var VANTAGE_LS_KEY   = 'mad7_vantage_pickers';
 var VANTAGE_POLL_MS  = 5000;
 var VANTAGE_POLL_TMR = null;
@@ -5644,6 +5703,146 @@ function vantageStopPoll() {
 function vantageOpenAndPoll() {
   window.open(VANTAGE_URL, '_blank');
   vantageStartPoll();
+}
+
+// ── Vantage API direct fetch — no userscript needed ────────────────
+// Uses the same fulfillment endpoint as Pick Staffing userscript.
+// Response contains [{user_id, station_id, ...}] objects.
+function vantageApiParse(data) {
+  var workers = [];
+  function collect(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    if (obj.user_id != null && obj.station_id != null) {
+      workers.push({ userId: String(obj.user_id), stationId: String(obj.station_id) });
+      return;
+    }
+    if (Array.isArray(obj)) { obj.forEach(collect); }
+    else { Object.values(obj).forEach(collect); }
+  }
+  collect(data);
+  return workers;
+}
+
+function vantageApiFetch(silent) {
+  if (!bridgeIsReady()) { if (!silent) toast('⚠ Bridge not active'); return Promise.reject(new Error('bridge')); }
+  return bridgeFetch(VANTAGE_API_URL, { method: 'GET' }).then(function(resp) {
+    if (!resp || !resp.responseText) throw new Error('empty');
+    var workers = vantageApiParse(JSON.parse(resp.responseText));
+    if (!workers.length) { if (!silent) toast('⚠ Vantage API: 0 pickers — check console'); return []; }
+    if (!S.floorWorkers) S.floorWorkers = {};
+    Object.keys(S.floorWorkers).forEach(function(sid) {
+      if ((S.floorWorkers[sid]||{}).source === 'vantage-api') delete S.floorWorkers[sid];
+    });
+    var count = 0;
+    workers.forEach(function(w) {
+      var slot  = vantageSid(w.stationId);
+      var login = w.userId.toLowerCase().replace(/\s/g,'');
+      if (!slot || !/^[a-z][a-z0-9]{2,11}$/.test(login)) return;
+      S.floorWorkers[slot] = { login: login, station: slot, task: 'directed_pick', process: 'PPPickToRebin', source: 'vantage-api' };
+      count++;
+    });
+    syncFloorWorkersToSM();
+    if (document.getElementById('page-floor') && document.getElementById('page-floor').classList.contains('active')) renderFloor();
+    var ts = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+    if (!silent) toast('✓ Vantage API: ' + count + ' pickers · ' + ts);
+    var el = document.getElementById('vantage-api-badge');
+    if (el) el.textContent = count;
+    return workers;
+  }).catch(function(err) {
+    console.log('[VantageAPI] error:', err);
+    if (!silent) toast('⚠ Vantage API failed — check bridge/session');
+    return [];
+  });
+}
+
+// ── ARSAW auto-fetch: Vantage API (stations) + PickingConsole (active status) ──
+// No URL paste needed — builds the station map automatically via bridge.
+function arsawAutoFetch() {
+  if (!bridgeIsReady()) { toast('⚠ Bridge not active'); return; }
+  toast('⏳ Auto-fetching pick stations…');
+  var now   = Date.now() / 1000;
+  var pcUrl = 'https://picking-console.' + WFC_REGION + '.picking.aft.a2z.com/api/fcs/MAD7/workforce';
+
+  Promise.all([
+    bridgeFetch(VANTAGE_API_URL, { method: 'GET' }).catch(function(){ return null; }),
+    bridgeFetch(pcUrl,           { method: 'GET' }).catch(function(){ return null; })
+  ]).then(function(res) {
+    // ── Vantage: userId → stationId ──
+    var stationMap = {};
+    if (res[0] && res[0].responseText) {
+      try {
+        vantageApiParse(JSON.parse(res[0].responseText)).forEach(function(w) {
+          stationMap[w.userId.toLowerCase()] = w.stationId;
+        });
+      } catch(e) { console.log('[ARSAW auto] Vantage parse error:', e); }
+    }
+
+    // ── PickingConsole: userId → {active, lastActMin, name} ──
+    var activeMap = {};
+    if (res[1] && res[1].responseText) {
+      try {
+        var pcData  = JSON.parse(res[1].responseText);
+        var pickers = pcData.pickerStatusList || pcData.workers || pcData.associates || pcData.data || [];
+        if (!Array.isArray(pickers)) pickers = Object.values(pickers || {});
+        pickers.forEach(function(e) {
+          var uid  = (e.userId || e.login || '').toLowerCase().replace(/\s/g,'');
+          if (!uid) return;
+          var parts = (e.name || '').split(',');
+          var name  = parts.length >= 2 ? (parts[1].trim() + ' ' + parts[0].trim()) : (e.name||'').trim();
+          activeMap[uid] = {
+            active:      !!e.active,
+            lastActMin:  e.lastActivityTime ? Math.floor((now - e.lastActivityTime) / 60) : null,
+            lastSeenMin: e.lastSeenTime     ? Math.floor((now - e.lastSeenTime)     / 60) : null,
+            name:        name
+          };
+        });
+      } catch(e) { console.log('[ARSAW auto] PC parse error:', e); }
+    }
+
+    if (!Object.keys(stationMap).length && !Object.keys(activeMap).length) {
+      toast('⚠ Auto-fetch: no data from Vantage or PickingConsole — check bridge/session');
+      return;
+    }
+
+    // ── Merge into S.floorWorkers vtPick slots ──
+    if (!S.floorWorkers) S.floorWorkers = {};
+    Object.keys(S.floorWorkers).forEach(function(sid) {
+      if ((S.floorWorkers[sid]||{}).source === 'vantage-api') delete S.floorWorkers[sid];
+    });
+    Object.keys(stationMap).forEach(function(uid) {
+      var slot = vantageSid(stationMap[uid]);
+      if (!slot || !/^[a-z][a-z0-9]{2,11}$/.test(uid)) return;
+      var info = activeMap[uid] || {};
+      S.floorWorkers[slot] = { login: uid, station: slot, task: 'directed_pick', process: 'PPPickToRebin',
+        source: 'vantage-api', active: info.active, lastActMin: info.lastActMin };
+    });
+    syncFloorWorkersToSM();
+
+    // ── Build ARSAW rows (wall number + login + active status) ──
+    var rows = [];
+    Object.keys(stationMap).sort(function(a,b){
+      return (stationMap[a]||'').localeCompare(stationMap[b]||'');
+    }).forEach(function(uid, i) {
+      var sid = stationMap[uid];
+      var m   = sid.match(/(?:ws)?[Pp]ick[Tt]o[Rr]ebin([234])_(\d+)/i);
+      if (!m) return;
+      var info = activeMap[uid] || {};
+      rows.push({ priority: i+1, station: parseInt(m[2]), login: uid,
+        shift: '', rate: null, active: info.active, lastActMin: info.lastActMin, name: info.name||'' });
+    });
+
+    // If no Vantage data but we have PickingConsole active pickers, add them without station
+    if (!rows.length && Object.keys(activeMap).length) {
+      Object.keys(activeMap).forEach(function(uid, i) {
+        var info = activeMap[uid];
+        rows.push({ priority: i+1, station: 0, login: uid,
+          shift: '', rate: null, active: info.active, lastActMin: info.lastActMin, name: info.name||'' });
+      });
+    }
+
+    arsawApply(rows, 'api');
+    if (document.getElementById('page-floor') && document.getElementById('page-floor').classList.contains('active')) renderFloor();
+  });
 }
 
 function vantageShowUserscript() {
@@ -19993,6 +20192,27 @@ function _harmonyRoute(d) {
   const ts  = d.ts || Date.now();
 
   console.log('[MAD7 Harmony]', d.method || 'GET', d.url.slice(0, 120), '→', raw.length, 'bytes');
+
+  // Vantage fulfillment API → pick station assignments (vtPick slots)
+  if (url.includes('vantage.amazon.com') && url.includes('station_work')) {
+    try {
+      const wks = vantageApiParse(JSON.parse(raw));
+      if (wks.length) {
+        if (!S.floorWorkers) S.floorWorkers = {};
+        Object.keys(S.floorWorkers).forEach(sid => { if ((S.floorWorkers[sid]||{}).source==='vantage-api') delete S.floorWorkers[sid]; });
+        let cnt = 0;
+        wks.forEach(w => {
+          const slot = vantageSid(w.stationId), login = w.userId.toLowerCase().replace(/\s/g,'');
+          if (slot && /^[a-z][a-z0-9]{2,11}$/.test(login)) { S.floorWorkers[slot]={login,station:slot,task:'directed_pick',process:'PPPickToRebin',source:'vantage-api'}; cnt++; }
+        });
+        syncFloorWorkersToSM();
+        if (document.getElementById('page-floor')?.classList.contains('active')) renderFloor();
+        const el=document.getElementById('vantage-api-badge'); if(el) el.textContent=cnt;
+        toast('🤖 Vantage API: '+cnt+' pickers auto-imported');
+      }
+    } catch(e) { console.warn('[Harmony/VantageAPI]', e); }
+    return;
+  }
 
   // FCLM Function Rollup → rate data for ALL process keys
   if (url.includes('fclm-portal') && url.includes('functionrollup')) {
