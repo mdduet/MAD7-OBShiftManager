@@ -12133,7 +12133,7 @@ function initBroadcastChannel() {
 }
 
 // ── localStorage poller — works with bookmarklets and legacy scripts ──
-const LAST_TS = {packman:0, workforce:0, rate:0, boardcheck:0, tot:0, idleh:0};
+const LAST_TS = {packman:0, workforce:0, rate:0, boardcheck:0, tot:0, idleh:0, autoflow:0};
 // Per-process rate last-seen timestamps
 const RATE_PROCS_IDS = RATE_PROCS.map(p => p.id);
 RATE_PROCS_IDS.forEach(id => { LAST_TS['rate_'+id] = 0; });
@@ -12157,6 +12157,18 @@ function pollLocalStorage() {
           // Trigger same rollup flow as postMessage handler
           window.dispatchEvent(new MessageEvent('message', { data: { type:'idleh_page', pageType:'rollup', html:d.html, url:d.url||'', ts:d.ts, mad7:true } }));
         }
+      }
+    }
+  } catch(e) {}
+
+  // AutoFlow HC — sent by the AutoFlow userscript via localStorage
+  try {
+    const raw = localStorage.getItem('mad7_import_autoflow');
+    if(raw) {
+      const d = JSON.parse(raw);
+      if(d.ts > (LAST_TS.autoflow||0)) {
+        LAST_TS.autoflow = d.ts;
+        handleImportData({...d, type:'autoflow_hc'});
       }
     }
   } catch(e) {}
@@ -14050,10 +14062,10 @@ const PLAN = {
   // Per-period AR / pick config — Q1/Q2 = current shift halves, Q3/Q4 = next shift halves
   // Default times match Late shift (15:00-23:00) → next = LateNight (19:45-03:45)
   perAR: {
-    q1: { ar:40,  arPlan:34.1, pickRate:350, start:'15:00', end:'19:00' },
-    q2: { ar:25,  arPlan:15.7, pickRate:340, start:'19:00', end:'23:00' },
-    q3: { ar:20,  arPlan:12.0, pickRate:330, start:'19:45', end:'23:45' },
-    q4: { ar:10,  arPlan:8.0,  pickRate:320, start:'23:45', end:'03:45' },
+    q1: { ar:40,  arPlan:34.1, pickRate:350, start:'15:00', end:'19:00', extraPickHC:0, extraPickRate:0 },
+    q2: { ar:25,  arPlan:15.7, pickRate:340, start:'19:00', end:'23:00', extraPickHC:0, extraPickRate:0 },
+    q3: { ar:20,  arPlan:12.0, pickRate:330, start:'19:45', end:'23:45', extraPickHC:0, extraPickRate:0 },
+    q4: { ar:10,  arPlan:8.0,  pickRate:320, start:'23:45', end:'03:45', extraPickHC:0, extraPickRate:0 },
   },
   wip: { actual:5700, eos:3100, tiempo:45, tp:5700 },
   rodeo: {},
@@ -14180,6 +14192,11 @@ function setRodeoStatus(msg, col) {
 function buildPlanCol(opts) {
   const {label,hdrBg,hdrTime,p1Arr,p2rArr,arrKey,p2rKey,ar,arPlan,pickRate,isCurrent,perKey,timeStart,timeEnd} = opts;
   const {liveRate,rodPic,afDet,blFor,fN,fD,fPct,riskCol,inp,tiempo} = opts;
+  const extraPickHC   = opts.extraPickHC   || 0;
+  const extraPickRate = opts.extraPickRate  || 0;
+
+  // Default buffer limits — used as fallback when no live BL_STATE data
+  const dfltBL = {PPAFE1:{min:230,max:291},PPSingleMedium:{min:60,max:71},PPSingleSIOBC:{min:101,max:132},PPSingleNoSLAM2:{min:152,max:182},PPSingleNoSLAM:{min:377,max:453},PPSingleMediumMix:{min:98,max:117}};
 
   // Grand totals for this period
   let packTUR = 0, p2rTUR = 0, grandPic = 0, p2rPicTotal = 0;
@@ -14213,7 +14230,7 @@ function buildPlanCol(opts) {
     const pic  = rodPic(p.code || p.id);
     const pctBL  = grandPic ? pic/grandPic : 0;
     const pctTUR = grandTUR ? tur/grandTUR : 0;
-    const bl   = blFor(p.code || p.id);
+    const bl   = blFor(p.code || p.id) || (dfltBL[p.code || p.id] || null);
     const af   = afDet(p.code || p.id);
     let hcBg='#d4edda', hcCol='#155724';
     if(af!=null) {
@@ -14307,9 +14324,10 @@ function buildPlanCol(opts) {
         <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#e8f4fd">${inp(Math.ceil(arPlan), "PLAN.perAR."+perKey+".arPlan=parseFloat(this.value)||"+arPlan+";renderPlan()", 28, '#4472c4')}</td>
         <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#fff3cd">${inp(pickRate, "PLAN.perAR."+perKey+".pickRate=parseInt(this.value)||"+pickRate+";renderPlan()", 34, '#856404')}</td>
       </tr>
-      <tr style="background:${surplusBg}">
-        <td style="padding:1px 4px;border:1px solid #e0e0e0;font-weight:600;color:${surplusCol}">Extra Pickers</td>
-        <td colspan="2" style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-weight:700;color:${surplusCol}">${(pickerSurplus>=0?'+':'')+pickerSurplus}</td>
+      <tr style="background:#f5f0ff">
+        <td style="padding:1px 4px;border:1px solid #e0e0e0;font-weight:600;color:#6a4c9c">Extra Pickers</td>
+        <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#ede8ff">${inp(extraPickHC||'', "PLAN.perAR."+perKey+".extraPickHC=parseInt(this.value)||0;renderPlan()", 28, '#6a4c9c')}</td>
+        <td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;background:#fff3cd">${inp(extraPickRate||'', "PLAN.perAR."+perKey+".extraPickRate=parseInt(this.value)||0;renderPlan()", 34, '#856404')}</td>
       </tr>
       <tr style="background:${extraBg}">
         <td style="padding:1px 4px;border:1px solid #e0e0e0;font-weight:600;color:${extraCol}">Extra Pick Cap</td>
@@ -14351,7 +14369,6 @@ AR:${Math.round(ar)}</div>
       {code:'PPSingleNoSLAM',   lbl:'SNS1',      rate:400},
       {code:'PPSingleMediumMix',lbl:'NoSLAMMix', rate:200},
     ];
-    const dfltBL = {PPAFE1:{min:230,max:291},PPSingleMedium:{min:60,max:71},PPSingleSIOBC:{min:101,max:132},PPSingleNoSLAM2:{min:152,max:182},PPSingleNoSLAM:{min:377,max:453},PPSingleMediumMix:{min:98,max:117}};
     bufHtml = `<div style="margin-top:4px">
       <div style="font-size:9px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Buffer limits</div>
       <table style="width:100%;border-collapse:collapse;font-size:9px;border:1px solid #bbb">
@@ -14507,6 +14524,7 @@ function renderPlan() {
     label:'CURRENT', hdrBg:'#2a5aaa', hdrTime:'',
     p1Arr:PLAN.p1, p2rArr:PLAN.p2r, arrKey:'p1', p2rKey:'p2r',
     ar:PA.q1.ar, arPlan:PA.q1.arPlan, pickRate:PA.q1.pickRate,
+    extraPickHC:PA.q1.extraPickHC||0, extraPickRate:PA.q1.extraPickRate||0,
     perKey:'q1', timeStart:PA.q1.start, timeEnd:PA.q1.end, isCurrent:true});
 
   const q2ColEl = document.getElementById('plan-col-q2');
@@ -14514,6 +14532,7 @@ function renderPlan() {
     label:'Next Plan', hdrBg:'#4472c4', hdrTime:`${PA.q2.start} → ${PA.q2.end}`,
     p1Arr:PLAN.q2p1, p2rArr:PLAN.q2p2r, arrKey:'q2p1', p2rKey:'q2p2r',
     ar:PA.q2.ar, arPlan:PA.q2.arPlan, pickRate:PA.q2.pickRate,
+    extraPickHC:PA.q2.extraPickHC||0, extraPickRate:PA.q2.extraPickRate||0,
     perKey:'q2', timeStart:PA.q2.start, timeEnd:PA.q2.end, isCurrent:false});
 
   const q3ColEl = document.getElementById('plan-col-q3');
@@ -14521,6 +14540,7 @@ function renderPlan() {
     label:'Next Plan', hdrBg:'#70ad47', hdrTime:`${PA.q3.start} → ${PA.q3.end}`,
     p1Arr:PLAN.q3p1, p2rArr:PLAN.q3p2r, arrKey:'q3p1', p2rKey:'q3p2r',
     ar:PA.q3.ar, arPlan:PA.q3.arPlan, pickRate:PA.q3.pickRate,
+    extraPickHC:PA.q3.extraPickHC||0, extraPickRate:PA.q3.extraPickRate||0,
     perKey:'q3', timeStart:PA.q3.start, timeEnd:PA.q3.end, isCurrent:false});
 
   const q4ColEl = document.getElementById('plan-col-q4');
@@ -14528,6 +14548,7 @@ function renderPlan() {
     label:'Next Plan', hdrBg:'#ed7d31', hdrTime:`${PA.q4.start} → ${PA.q4.end}`,
     p1Arr:PLAN.q4p1, p2rArr:PLAN.q4p2r, arrKey:'q4p1', p2rKey:'q4p2r',
     ar:PA.q4.ar, arPlan:PA.q4.arPlan, pickRate:PA.q4.pickRate,
+    extraPickHC:PA.q4.extraPickHC||0, extraPickRate:PA.q4.extraPickRate||0,
     perKey:'q4', timeStart:PA.q4.start, timeEnd:PA.q4.end, isCurrent:false});
 
   // ── CENTER panel updates ──────────────────────────────────
