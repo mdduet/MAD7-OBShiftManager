@@ -4779,6 +4779,79 @@ var MAD7_ARSAW_STATIONS = {
   4: [4317,4318,4323,4324,4332,4333,4339,4341,4346,4348,4352,4353,4359,4360,4367,4368,4375,4376,4381,4382],
 };
 
+// Default priorities by station suffix (last 2 digits) — from Excel layout
+var ARSAW_DEFAULT_PRIORITY = {
+  17:20, 18:9,  23:18, 24:7,  32:16, 33:5,
+  39:14, 41:3,  46:12, 48:1,  52:11, 53:2,
+  59:13, 60:4,  67:15, 68:6,  75:17, 76:8,
+  81:19, 82:10
+};
+
+// ── Roboscout Pick rate fetch ──────────────────────────────────────
+function buildRoboscoutPickUrl() {
+  var pad2 = function(n){ return String(n).padStart(2,'0'); };
+  var fmtDT = function(d){
+    return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())
+      +'+'+pad2(d.getHours())+'%3A'+pad2(d.getMinutes())+'%3A00';
+  };
+  var now = new Date(), h = now.getHours();
+  var sd  = new Date(now);
+  if      (h >= 5  && h < 13) sd.setHours(4,  45, 0, 0);
+  else if (h >= 13 && h < 21) sd.setHours(12, 45, 0, 0);
+  else { if (h < 5) sd.setDate(sd.getDate()-1); sd.setHours(20, 45, 0, 0); }
+  var site = encodeURIComponent('(MAD7)');
+  return 'https://roboscout.amazon.com/view_plot_data/?sites='+site+'&associateLogin=%25&current_day=false'
+    +'&startDateTime='+fmtDT(sd)+'&endDateTime='+fmtDT(now)
+    +'&mom_ids=1537%2C290%2C26%2C1897%2C313'
+    +'&osm_ids=4&oxm_ids=853%2C147&ofm_ids='
+    +'&viz=nvd3Table&instance_id=2030&object_id=11355'
+    +'&BrowserTZ=Europe%2FBerlin&app_name=RoboScout';
+}
+
+function parseRoboscoutPickJson(json) {
+  var results = {};
+  try {
+    var byPerson = {};
+    (json.data||[]).forEach(function(entry){
+      if (!entry.xValue) return;
+      if (!byPerson[entry.xValue]) byPerson[entry.xValue] = {};
+      byPerson[entry.xValue][entry.key] = entry.yValue;
+    });
+    var rateKey = 'Pick_Rate MAD7';
+    Object.keys(byPerson).forEach(function(xVal){
+      var cols = byPerson[xVal];
+      var login = (xVal.split(':')[1]||'').trim().toLowerCase();
+      if (!login || !/^[a-z][a-z0-9._-]*$/.test(login)) return;
+      var raw = (cols[rateKey]||'').toString().trim();
+      if (!raw || raw === '-') {
+        Object.keys(cols).some(function(k){ if(k.toLowerCase().indexOf('rate')!==-1){raw=(cols[k]||'').toString().trim();return true;} });
+      }
+      if (!raw || raw === '-') return;
+      var jph = parseFloat(raw);
+      if (isNaN(jph) || jph <= 0) return;
+      results[login] = { jph: Math.round(jph) };
+    });
+  } catch(e) {}
+  return results;
+}
+
+function fetchRoboscoutPick() {
+  if (!bridgeIsReady()) { toast('⚠ Bridge not ready'); return; }
+  var btn = document.getElementById('arsaw-ppr-btn');
+  if (btn) btn.textContent = '⏳';
+  bridgeFetch(buildRoboscoutPickUrl(), { method:'GET' })
+    .then(function(resp){ return resp.text ? resp.text() : Promise.resolve(resp.responseText||''); })
+    .then(function(txt){
+      var json; try { json = JSON.parse(txt); } catch(e) { toast('⚠ Roboscout: JSON parse error'); if(btn) btn.textContent='📈 PPR'; return; }
+      S.roboscoutPick = parseRoboscoutPickJson(json);
+      S.roboscoutPickTs = new Date();
+      toast('✅ Roboscout: '+Object.keys(S.roboscoutPick).length+' pickers');
+      if (btn) btn.textContent = '📈 PPR';
+      renderFloorContent();
+    })
+    .catch(function(e){ toast('⚠ Roboscout: '+e.message); if(btn) btn.textContent='📈 PPR'; });
+}
+
 function renderArsawContent(ct) {
   var rows = S.arsawRows || [];
   var lastFetch = S.arsawLastFetch;
@@ -4796,10 +4869,13 @@ function renderArsawContent(ct) {
     : '';
   var srcLabel = S.arsawSource === 'api' ? '🤖 API' : (S.arsawSource === 'paste' ? '📋 Paste' : (S.arsawSource ? '🔗 Bridge' : '—'));
 
+  var pprTs = S.roboscoutPickTs ? S.roboscoutPickTs.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : '';
   var hdr = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
     + '<span style="font-size:11px;font-weight:700;color:var(--text1)">ARSAW — Station Map</span>'
     + '<button class="btn" onclick="arsawAutoFetch()" style="font-size:10px;padding:3px 10px;background:#3ecf8e;color:#0a1f14;border-color:#3ecf8e">🤖 Auto</button>'
-    + '<input id="arsaw-url-inp" placeholder="Roboscout URL (optional)…" value="' + (S.arsawUrl||'') + '"'
+    + '<button id="arsaw-ppr-btn" class="btn" onclick="fetchRoboscoutPick()" style="font-size:10px;padding:3px 8px;background:#60a5fa20;border-color:#60a5fa40;color:#60a5fa" title="Fetch live pick rates from Roboscout">'
+    + '📈 PPR' + (pprTs ? ' <span style="font-size:8px;opacity:.7">'+pprTs+'</span>' : '') + '</button>'
+    + '<input id="arsaw-url-inp" placeholder="Roboscout station URL (optional)…" value="' + (S.arsawUrl||'') + '"'
     + ' style="flex:1;min-width:140px;font-size:9px;padding:2px 6px;border:1px solid var(--bdr);border-radius:4px;background:var(--card);color:var(--text1)"'
     + ' onchange="S.arsawUrl=this.value">'
     + '<button class="btn" onclick="arsawFetch()" style="font-size:10px;padding:3px 8px">🔄</button>'
@@ -4815,18 +4891,21 @@ function renderArsawContent(ct) {
   }
 
   function buildFloorCol(floor, stList) {
-    var staffed = 0;
+    var staffed = 0, pprTotal = 0, pprCount = 0;
+    var pickMap = S.roboscoutPick || {};
     var bodyHtml = stList.map(function(stNum) {
       var stStr = String(stNum);
       var r = stationMap[stStr] || {};
       var hasLogin = !!r.login;
       if (hasLogin) staffed++;
 
+      // Priority: use imported value first, fall back to hardcoded default by station suffix
+      var stPri = r.priority != null ? r.priority : (ARSAW_DEFAULT_PRIORITY[stNum % 100] || null);
+
       var actDot = '';
       if (hasLogin && r.active !== undefined) {
         var dotCol = r.active ? '#3ecf8e' : (r.lastActMin != null && r.lastActMin < 15 ? '#f59e0b' : '#f43f5e');
-        var dotTitle = r.active ? 'Active' : 'Inactive' + (r.lastActMin != null ? ' ('+r.lastActMin+'m)' : '');
-        actDot = '<span style="color:'+dotCol+';font-size:9px;margin-right:2px" title="'+dotTitle+'">●</span>';
+        actDot = '<span style="color:'+dotCol+';font-size:9px;margin-right:2px" title="'+(r.active?'Active':'Inactive')+'">●</span>';
       }
 
       var photoHtml = hasLogin
@@ -4836,17 +4915,25 @@ function renderArsawContent(ct) {
           + 'onerror="this.style.display=\'none\'">'
         : '';
 
+      // PPR from Roboscout
+      var pickData = hasLogin ? (pickMap[r.login] || null) : null;
+      if (pickData) { pprTotal += pickData.jph; pprCount++; }
+      var pprVal = pickData ? pickData.jph : '';
+      var pprBg  = pickData ? (pickData.jph >= 350 ? 'rgba(62,207,142,.18)' : pickData.jph >= 250 ? 'rgba(245,158,11,.18)' : 'rgba(244,63,94,.18)') : '';
+      var pprTxt = pickData ? (pickData.jph >= 350 ? '#3ecf8e' : pickData.jph >= 250 ? '#f59e0b' : '#f43f5e') : 'var(--text3)';
+
       var upt = r.rate != null ? Math.round(r.rate) : (hasLogin ? '—' : '');
       var emptyStyle = hasLogin ? '' : 'color:var(--text3)';
 
       return '<tr style="border-bottom:1px solid #eee">'
-        + '<td style="padding:1px 3px;text-align:center;font-size:9px;font-weight:700;color:'+priorityCol(r.priority)+';min-width:20px">' + (r.priority != null ? r.priority : '') + '</td>'
+        + '<td style="padding:1px 3px;text-align:center;font-size:9px;font-weight:700;color:'+priorityCol(stPri)+';min-width:20px">' + (stPri != null ? stPri : '') + '</td>'
         + '<td style="padding:1px 4px;font-family:monospace;font-size:9px;font-weight:600">' + stStr + '</td>'
         + '<td style="padding:1px 4px;font-size:9px;white-space:nowrap;min-width:88px">'
           + actDot + photoHtml
           + (hasLogin ? r.login : '<span style="color:var(--text3);font-size:8px">—</span>')
           + '</td>'
         + '<td style="padding:1px 4px;font-size:9px;color:#4472c4;white-space:nowrap">' + (r.shift || '') + '</td>'
+        + '<td style="padding:1px 4px;font-size:9px;font-family:monospace;text-align:right;background:'+pprBg+';color:'+pprTxt+';font-weight:'+(pickData?'700':'400')+'">' + (pickData ? pprVal : (hasLogin ? '—' : '')) + '</td>'
         + '<td style="padding:1px 4px;font-size:9px;font-family:monospace;text-align:right;'+emptyStyle+'">' + upt + '</td>'
         + '</tr>';
     }).join('');
@@ -4854,8 +4941,9 @@ function renderArsawContent(ct) {
     var rscPct = stList.length ? Math.round(staffed / stList.length * 100) : 0;
     var rscBg  = rscPct >= 80 ? '#d4edda' : rscPct >= 70 ? '#fff3cd' : '#f8d7da';
     var rscTxt = rscPct >= 80 ? '#155724' : rscPct >= 70 ? '#856404' : '#c0392b';
+    var avgPpr = pprCount ? Math.round(pprTotal / pprCount) : null;
 
-    return '<div style="flex:1;min-width:190px">'
+    return '<div style="flex:1;min-width:210px">'
       + '<div style="text-align:center;font-size:10px;font-weight:700;padding:3px 6px;background:#263238;color:#fff;border-radius:4px 4px 0 0">Floor ' + floor + '</div>'
       + '<table style="border-collapse:collapse;width:100%;font-size:9px;border:1px solid #ccc;border-top:none">'
       + '<thead><tr style="background:#37474f;color:#fff;font-size:8px;font-weight:700">'
@@ -4863,12 +4951,15 @@ function renderArsawContent(ct) {
       + '<th style="padding:2px 4px">St</th>'
       + '<th style="padding:2px 4px">Login</th>'
       + '<th style="padding:2px 4px">Shift</th>'
+      + '<th style="padding:2px 4px">PPR</th>'
       + '<th style="padding:2px 4px">UPT</th>'
       + '</tr></thead>'
       + '<tbody>' + bodyHtml + '</tbody>'
       + '<tfoot><tr style="background:'+rscBg+';font-size:9px;font-weight:700;border-top:2px solid #999">'
       + '<td colspan="2" style="padding:2px 4px;color:'+rscTxt+'">RSC '+rscPct+'%</td>'
-      + '<td colspan="3" style="padding:2px 4px;font-family:monospace;color:'+rscTxt+'">'+staffed+' / '+stList.length+'</td>'
+      + '<td colspan="2" style="padding:2px 4px;font-family:monospace;color:'+rscTxt+'">'+staffed+' / '+stList.length+'</td>'
+      + '<td style="padding:2px 4px;font-family:monospace;color:'+(avgPpr?'#60a5fa':'var(--text3)')+'">'+(avgPpr||'—')+'</td>'
+      + '<td></td>'
       + '</tr></tfoot>'
       + '</table>'
       + '</div>';
