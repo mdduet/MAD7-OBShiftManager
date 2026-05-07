@@ -3103,6 +3103,12 @@ select.ab-lf-input{cursor:pointer}
         <div style="font-weight:400;color:var(--text3);margin-top:2px;font-size:10px">Per-AA activity gap analysis</div>
       </button>
 
+      <button onclick="showUserscriptModal('autoflow')" style="padding:10px;background:rgba(91,109,202,.08);color:#5b6dca;border:1px solid rgba(91,109,202,.25);border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left">
+        <div style="font-size:15px;margin-bottom:4px">⚙</div>
+        <div>AutoFlow HC v2</div>
+        <div style="font-weight:400;color:var(--text3);margin-top:2px;font-size:10px">Plan tab · detected HC · 60s</div>
+      </button>
+
     </div>
 
     <!-- Quick-start instructions -->
@@ -7971,6 +7977,85 @@ var _US_IDLE_AUTO_V1 = JSON.parse('"// ==UserScript==\\n// @name         MAD7 ·
 
 var _US_RATE_V22 = JSON.parse('"// ==UserScript==\\n// @name         MAD7 · PPR Rate Auto (v22)\\n// @namespace    mad7-ob-shift-manager\\n// @version      22.0\\n// @description  FCLM Function Rollup → MAD7. Reads login aliases directly from the live browser DOM. Auto-refreshes the page every 10 min (toggle on/off). Floating panel shows countdown + Send Now button. Sends via BroadcastChannel so MAD7 receives data without any extra steps.\\n// @match        https://fclm-portal.amazon.com/reports/functionRollup*\\n// @grant        none\\n// @run-at       document-idle\\n// ==/UserScript==\\n\\n(function () {\\n  \'use strict\';\\n\\n  // ── Column layout confirmed from live FCLM browser DOM ──────────────────\\n  // Header rows 0-2 describe the layout; data starts at row 3.\\n  // col4 = ShiftCode  col5 = Login (alias!)  col6 = PaidHrs  col12 = JPH\\n  var COL_LOGIN = 5;\\n  var COL_SHIFT = 4;\\n  var COL_HOURS = 6;\\n  var COL_JPH   = 12;\\n  var HDR_ROWS  = 3;\\n\\n  // Process key → FCLM function name as it appears in the page.\\n  // pms: observed as \'Scan Packages\' in FCLM summary (was wrong \'Scan Verify Small\' in v21).\\n  // sm2: added — was missing from v21 entirely.\\n  var KEY_TO_FNAME = {\\n    \'afe-rebin\':  \'AFE 1 Rebin\',\\n    \'afe-induct\': \'AFE1 Induct\',\\n    \'afe-pack\':   \'Scan Verify AFE\',\\n    \'pick-arsaw\': \'RF Pick\',\\n    \'pick-p2r\':   \'Pick To Rebin\',\\n    \'pack-p2r\':   \'Pack Merge\',\\n    \'sm\':         \'Scan Verify Medium\',\\n    \'siobc\':      \'Scan Verify SIOC\',\\n    \'pms\':        \'Scan Packages\',        // was \'Scan Verify Small\' in v21 — fixed\\n    \'sm2\':        \'Scan Verify Small\',    // was missing in v21 — added\\n    \'sns\':        \'Slam At Pack\',\\n    \'sns2\':       \'SLAP VDF\'\\n  };\\n\\n  // Page processId → rate keys it covers.\\n  // sm2 added to 01002993 (Singles page).\\n  var PAGE_TO_KEYS = {\\n    \'01003051\': [\'afe-rebin\', \'afe-induct\'],\\n    \'01002969\': [\'afe-pack\'],\\n    \'01003001\': [\'pick-arsaw\', \'pick-p2r\'],\\n    \'01002991\': [\'pack-p2r\'],\\n    \'01002993\': [\'sm\', \'siobc\', \'pms\', \'sm2\', \'sns\', \'sns2\']\\n  };\\n\\n  // Hard-coded aliases for processes whose FCLM name varies by page/version.\\n  var KEY_ALIASES = {\\n    \'siobc\':    [\'scan verify sioc\',\'scan verify siobc\',\'scan verify siob\',\'scan verify sio bc\'],\\n    \'pms\':      [\'scan packages\',\'pack singles pm\',\'pack singles\',\'scan verify small\'],\\n    \'sm2\':      [\'scan verify small\',\'scan verify\',\'scan verify sm2\'],\\n    \'sns2\':     [\'slap vdf\',\'slap mix vdf\',\'slam vdf\'],\\n    \'sns\':      [\'slam at pack\',\'slam at pack sns\',\'slap\'],\\n    \'pack-p2r\': [\'pack merge\',\'scan packages afe\',\'pack2rebin\']\\n  };\\n\\n  var SIZE_LABELS = {\\n    small:1, medium:1, large:1, heavybulky:1, total:1,\\n    unit:1, uph:1, jph:1, each:1, type:1, id:1,\\n    name:1, shift:1, jobs:1, function:1\\n  };\\n\\n  var AUTO_STORAGE_KEY = \'mad7_rate_auto\';\\n  var REFRESH_MS = 10 * 60 * 1000;  // 10 minutes\\n\\n  // ── UI panel ──────────────────────────────────────────────────────────────\\n  var panel, statusEl, nextEl, toggleBtn, _countdownIv, _nextAt;\\n\\n  function createPanel() {\\n    panel = document.createElement(\'div\');\\n    panel.id = \'mad7-rate-panel\';\\n    panel.style.cssText = [\\n      \'position:fixed;top:56px;right:12px;z-index:2147483647\',\\n      \'background:#0f0f11;border:1.5px solid #3ecf8e;border-radius:10px\',\\n      \'padding:12px 15px;font-family:monospace;font-size:12px;color:#e8e8ec\',\\n      \'box-shadow:0 4px 20px rgba(0,0,0,.7);min-width:230px;line-height:1.6\'\\n    ].join(\';\');\\n\\n    var hdr = document.createElement(\'div\');\\n    hdr.style.cssText = \'font-weight:700;color:#3ecf8e;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between\';\\n\\n    var title = document.createElement(\'span\');\\n    title.textContent = \'MAD7 Rate v22\';\\n\\n    var closeBtn = document.createElement(\'button\');\\n    closeBtn.textContent = \'x\';\\n    closeBtn.style.cssText = \'background:none;border:none;color:#5a5a6a;cursor:pointer;font-size:14px;padding:0 2px;line-height:1\';\\n    closeBtn.onclick = function () { panel.style.display = \'none\'; };\\n\\n    hdr.appendChild(title);\\n    hdr.appendChild(closeBtn);\\n    panel.appendChild(hdr);\\n\\n    statusEl = document.createElement(\'div\');\\n    statusEl.style.cssText = \'font-size:11px;margin-bottom:4px;color:#9898a8\';\\n    statusEl.textContent = \'Scanning...\';\\n    panel.appendChild(statusEl);\\n\\n    nextEl = document.createElement(\'div\');\\n    nextEl.style.cssText = \'font-size:11px;color:#f59e0b;min-height:16px;margin-bottom:10px\';\\n    panel.appendChild(nextEl);\\n\\n    var row = document.createElement(\'div\');\\n    row.style.cssText = \'display:flex;gap:8px\';\\n\\n    var sendBtn = document.createElement(\'button\');\\n    sendBtn.textContent = \'Send now\';\\n    sendBtn.style.cssText = \'flex:1;background:#1e3a2e;border:1px solid #3ecf8e;color:#3ecf8e;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;font-family:monospace\';\\n    sendBtn.onclick = function () { main(); };\\n\\n    toggleBtn = document.createElement(\'button\');\\n    toggleBtn.style.cssText = \'flex:1;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;font-family:monospace;border:1px solid\';\\n    toggleBtn.onclick = toggleAutoRefresh;\\n\\n    row.appendChild(sendBtn);\\n    row.appendChild(toggleBtn);\\n    panel.appendChild(row);\\n    document.body.appendChild(panel);\\n    refreshToggleBtn();\\n  }\\n\\n  function isAutoOn() {\\n    return localStorage.getItem(AUTO_STORAGE_KEY) !== \'off\';\\n  }\\n\\n  function refreshToggleBtn() {\\n    var on = isAutoOn();\\n    toggleBtn.textContent        = on ? \'Auto ON\' : \'Auto OFF\';\\n    toggleBtn.style.background   = on ? \'#1a2e1a\' : \'#1e1e24\';\\n    toggleBtn.style.borderColor  = on ? \'#3ecf8e\' : \'#5a5a6a\';\\n    toggleBtn.style.color        = on ? \'#3ecf8e\' : \'#9898a8\';\\n  }\\n\\n  function startCountdown() {\\n    clearInterval(_countdownIv);\\n    _nextAt = Date.now() + REFRESH_MS;\\n    _countdownIv = setInterval(function () {\\n      if (!isAutoOn()) { clearInterval(_countdownIv); nextEl.textContent = \'\'; return; }\\n      var rem = Math.max(0, Math.ceil((_nextAt - Date.now()) / 1000));\\n      var m = Math.floor(rem / 60);\\n      var s = rem % 60;\\n      nextEl.textContent = \'Next refresh in \' + m + \':\' + (s < 10 ? \'0\' : \'\') + s;\\n      if (rem <= 0) { clearInterval(_countdownIv); location.reload(); }\\n    }, 1000);\\n  }\\n\\n  function toggleAutoRefresh() {\\n    if (isAutoOn()) {\\n      localStorage.setItem(AUTO_STORAGE_KEY, \'off\');\\n      clearInterval(_countdownIv);\\n      nextEl.textContent = \'Auto-refresh disabled\';\\n    } else {\\n      localStorage.setItem(AUTO_STORAGE_KEY, \'on\');\\n      startCountdown();\\n    }\\n    refreshToggleBtn();\\n  }\\n\\n  function setStatus(msg, color) {\\n    if (statusEl) {\\n      statusEl.textContent = msg;\\n      statusEl.style.color = color || \'#9898a8\';\\n    }\\n  }\\n\\n  // ── Parsing ───────────────────────────────────────────────────────────────\\n  function cellText(td) {\\n    return td.textContent.trim().replace(/[\\\\s\\\\n]+/g, \' \');\\n  }\\n\\n  function parseDetailTable(tbl, fnName) {\\n    var rows = Array.from(tbl.querySelectorAll(\'tr\'));\\n    if (rows.length <= HDR_ROWS) return [];\\n    var LOGIN_RE = /^[a-z][a-z0-9]{2,11}$/i;\\n\\n    // FCLM columns (0-indexed from DOM td elements in data rows):\\n    // Type(0) | ID(1) | Name(2) | Manager(3) | ShiftCode(4) | Login(5) | [Station(6)] |\\n    // PaidHrs-Small | PaidHrs-Medium | PaidHrs-Large | PaidHrs-HeavyBulky | PaidHrs-Total |\\n    // Jobs | JPH | (more EA/UNIT columns)\\n    //\\n    // Station column is present when tds.length >= 14.\\n    // Without Station: Total-hrs = col10, JPH = col12.\\n    // With Station:    Total-hrs = col11, JPH = col13.\\n\\n    var result = [];\\n    rows.slice(HDR_ROWS).forEach(function (tr) {\\n      var tds = Array.from(tr.querySelectorAll(\'td\'));\\n      if (tds.length < 12) return;  // need at least enough for JPH\\n\\n      var login = cellText(tds[COL_LOGIN]).toLowerCase();\\n      if (!login || !LOGIN_RE.test(login)) return;\\n\\n      var hasStation = tds.length >= 14;\\n      var hoursCol   = hasStation ? 11 : 10;\\n      var jphCol     = hasStation ? 13 : 12;\\n\\n      var hours = parseFloat(cellText(tds[hoursCol])) || 0;\\n      var jph   = jphCol < tds.length ? parseFloat(cellText(tds[jphCol]).replace(/,/g, \'\')) || 0 : 0;\\n\\n      // If JPH still 0 (column not found), scan right-to-left for a float 50–3000\\n      if (!jph) {\\n        for (var j = tds.length - 1; j > COL_LOGIN + 3; j--) {\\n          var txt = cellText(tds[j]).replace(/,/g, \'\');\\n          var v = parseFloat(txt);\\n          if (!isNaN(v) && v >= 50 && v <= 3000 && txt.indexOf(\'.\') >= 0) { jph = v; break; }\\n        }\\n      }\\n\\n      if (jph <= 0 && hours <= 0) return;\\n      result.push({ login: login, shift: cellText(tds[COL_SHIFT]), hours: hours, uph: jph, fn: fnName });\\n    });\\n\\n    if (result.length) {\\n      var avg = Math.round(result.reduce(function (s, r) { return s + r.uph; }, 0) / result.length);\\n      console.log(\'[MAD7 Rate v22]\', fnName + \':\', result.length + \'w avg=\' + avg + \'JPH\',\\n        \'| sample:\', result.slice(0, 3).map(function (r) { return r.login + \'=\' + r.uph.toFixed(0); }).join(\', \'));\\n    }\\n    return result;\\n  }\\n\\n  function getFunctionNames(tbl) {\\n    var names = [], seen = {};\\n    Array.from(tbl.querySelectorAll(\'tr\')).forEach(function (tr) {\\n      var tds = tr.querySelectorAll(\'th,td\');\\n      if (!tds.length) return;\\n      var first = cellText(tds[0]);\\n      if (!first || SIZE_LABELS[first.toLowerCase()] || /^\\\\d/.test(first)) return;\\n      if (first.length > 2 && !seen[first]) { seen[first] = true; names.push(first); }\\n    });\\n    return names;\\n  }\\n\\n  // Fuzzy-match a function name against parsed function keys.\\n  // Steps: exact → substring → hard-coded aliases.\\n  function matchKey(byFn, fname, rateKey) {\\n    var fl = fname.toLowerCase();\\n    // 1. Exact\\n    var exact = Object.keys(byFn).find(function (k) { return k.toLowerCase() === fl; });\\n    if (exact) return exact;\\n    // 2. Substring\\n    var sub = Object.keys(byFn).find(function (k) {\\n      var kl = k.toLowerCase();\\n      return kl.indexOf(fl) !== -1 || fl.indexOf(kl) !== -1;\\n    });\\n    if (sub) return sub;\\n    // 3. Hard-coded aliases\\n    var aliases = rateKey ? (KEY_ALIASES[rateKey] || []) : [];\\n    for (var i = 0; i < aliases.length; i++) {\\n      var alias = aliases[i];\\n      var m = Object.keys(byFn).find(function (k) {\\n        var kl = k.toLowerCase();\\n        return kl === alias || kl.indexOf(alias) !== -1 || alias.indexOf(kl) !== -1;\\n      });\\n      if (m) return m;\\n    }\\n    return null;\\n  }\\n\\n  // Send via all three channels so MAD7 receives data regardless of opener state.\\n  function sendData(payload) {\\n    var sent = [];\\n    // 1. window.opener.postMessage\\n    if (window.opener && !window.opener.closed) {\\n      try { window.opener.postMessage(payload, \'*\'); sent.push(\'opener\'); } catch (e) {}\\n    }\\n    // 2. BroadcastChannel\\n    try { new BroadcastChannel(\'mad7_import\').postMessage(payload); sent.push(\'bc\'); } catch (e) {}\\n    // 3. localStorage fallback\\n    try {\\n      localStorage.setItem(\'mad7_import_rate_\' + payload.processKey, JSON.stringify(payload));\\n      sent.push(\'ls\');\\n    } catch (e) {}\\n    return sent.join(\'+\') || null;\\n  }\\n\\n  function getPid()    { return new URLSearchParams(location.search).get(\'processId\') || \'\'; }\\n  function getReqKey() {\\n    var m = location.hash.match(/mad7key=([a-z0-9_-]+)/i);\\n    return m ? m[1].toLowerCase() : null;\\n  }\\n\\n  // ── Main ──────────────────────────────────────────────────────────────────\\n  function main() {\\n    var pid      = getPid();\\n    var reqKey   = getReqKey();\\n    var pageKeys = PAGE_TO_KEYS[pid] || [];\\n\\n    if (!pageKeys.length) {\\n      setStatus(\'Unknown processId: \' + pid, \'#f43f5e\');\\n      console.warn(\'[MAD7 Rate v22] Unknown processId:\', pid);\\n      return;\\n    }\\n\\n    var tables = Array.from(document.querySelectorAll(\'table\'));\\n    if (tables.length < 4) {\\n      setStatus(\'Waiting... (\' + tables.length + \'/4 tables)\', \'#60a5fa\');\\n      return;\\n    }\\n\\n    var fnNames = getFunctionNames(tables[2]);\\n    console.log(\'[MAD7 Rate v22] Functions found:\', fnNames.join(\', \'));\\n\\n    var byFn = {};\\n    tables.slice(3).forEach(function (tbl, i) {\\n      var fname = fnNames[i] || (\'Func\' + (i + 1));\\n      var rows = parseDetailTable(tbl, fname);\\n      if (rows.length) byFn[fname] = rows;\\n    });\\n\\n    var total = Object.keys(byFn).reduce(function (s, k) { return s + byFn[k].length; }, 0);\\n    if (!total) {\\n      setStatus(\'No workers found — check F12\', \'#f43f5e\');\\n      return;\\n    }\\n\\n    var keysToProcess = reqKey && pageKeys.indexOf(reqKey) !== -1 ? [reqKey] : pageKeys;\\n    var sentLabels = [];\\n\\n    keysToProcess.forEach(function (key) {\\n      var fname = KEY_TO_FNAME[key];\\n      if (!fname) return;\\n      var sKey = matchKey(byFn, fname, key);\\n      var rows = sKey ? byFn[sKey] : [];\\n      if (!rows.length && pageKeys.length === 1)\\n        rows = Object.values(byFn).reduce(function (a, b) { return a.concat(b); }, []);\\n      if (!rows.length) { console.warn(\'[MAD7 Rate v22] No rows for key:\', key, \'| fname:\', fname); return; }\\n\\n      var raw = rows.map(function (r) {\\n        var pct = r.uph > 0 ? (r.uph / 250 * 100).toFixed(1) + \'%\' : \'0%\';\\n        return [r.login, r.shift, r.hours.toFixed(2), r.uph.toFixed(1), pct].join(\'\\\\t\');\\n      }).join(\'\\\\n\');\\n\\n      var avg = Math.round(rows.reduce(function (s, r) { return s + r.uph; }, 0) / rows.length);\\n      var method = sendData({ mad7: true, type: \'rate\', processKey: key, ts: Date.now(), raw: raw, rows: rows });\\n      sentLabels.push(key + \'(\' + rows.length + \'w \' + avg + \'JPH)\');\\n      console.log(\'[MAD7 Rate v22] Sent\', key + \':\', rows.length, \'workers, avg\', avg, \'JPH via\', method);\\n    });\\n\\n    if (sentLabels.length) {\\n      setStatus(\'OK \' + sentLabels.join(\' | \'), \'#3ecf8e\');\\n    } else {\\n      setStatus(\'No matching process for processId \' + pid, \'#f59e0b\');\\n    }\\n  }\\n\\n  // ── Boot ──────────────────────────────────────────────────────────────────\\n  function init() {\\n    createPanel();\\n    var hasRun = false, deb;\\n\\n    function tryMain() {\\n      var tbls = document.querySelectorAll(\'table\');\\n      var ready = tbls.length >= 4 && tbls[3].querySelectorAll(\'tr\').length > 3;\\n      if (ready && !hasRun) { hasRun = true; main(); }\\n      else if (!hasRun) setStatus(\'Waiting (\' + tbls.length + \' tables)...\', \'#60a5fa\');\\n    }\\n\\n    setTimeout(tryMain, 2500);\\n    new MutationObserver(function () {\\n      clearTimeout(deb);\\n      deb = setTimeout(function () { if (!hasRun) tryMain(); }, 1500);\\n    }).observe(document.body, { childList: true, subtree: true });\\n    setTimeout(function () { if (!hasRun) { hasRun = false; main(); } }, 10000);\\n\\n    if (isAutoOn()) {\\n      startCountdown();\\n    } else {\\n      nextEl.textContent = \'Auto-refresh disabled\';\\n    }\\n  }\\n\\n  if (document.readyState === \'complete\') {\\n    setTimeout(init, 800);\\n  } else {\\n    window.addEventListener(\'load\', function () { setTimeout(init, 800); });\\n  }\\n})();\\n"');
 
+var _US_AUTOFLOW_V2 = [
+  '// ==UserScript==',
+  '// @name         MAD7 · AutoFlow HC → Shift Manager (v2)',
+  '// @namespace    mad7-ob-shift-manager',
+  '// @version      2.0',
+  '// @description  Reads detected + recommended HC per PP from AutoFlow Cascade EU → MAD7 Plan tab. Auto-sends every 60s via localStorage.',
+  '// @match        https://autoflow-cascade-eu.amazon.com/*',
+  '// @grant        none',
+  '// @run-at       document-idle',
+  '// ==/UserScript==',
+  '(function () {',
+  "  'use strict';",
+  '  var REFRESH_MS = 60000;',
+  '  var KNOWN_PPS = [',
+  "    'PPAFE1','PPSingleMedium','PPSingleSIOBC','PPSingleNoSlam2',",
+  "    'PPSingleNoSLAM','PPSingleNoSLAM2','PPSingleMediumMix',",
+  "    'PPPickToRebin2','PPPickToRebin3','PPPickToRebin4','PPShrinkRay'",
+  '  ];',
+  '',
+  '  function extractData() {',
+  '    var detected = {}, recommended = {};',
+  '    // Scan all table rows and any row-like elements for PP codes',
+  "    var els = Array.from(document.querySelectorAll('tr, [class*=\"row\"], [class*=\"Row\"], [class*=\"item\"]'));",
+  '    els.forEach(function(el) {',
+  '      var text = el.innerText || el.textContent || "";',
+  '      for (var i = 0; i < KNOWN_PPS.length; i++) {',
+  '        if (text.indexOf(KNOWN_PPS[i]) >= 0) {',
+  '          var nums = text.match(/\\b(\\d{1,4})\\b/g);',
+  '          if (nums && nums.length >= 1) {',
+  '            detected[KNOWN_PPS[i]] = parseInt(nums[0], 10);',
+  '            if (nums.length >= 2) recommended[KNOWN_PPS[i]] = parseInt(nums[1], 10);',
+  '          }',
+  '          break;',
+  '        }',
+  '      }',
+  '    });',
+  '    // Fallback: scan full page text if table rows found nothing',
+  '    if (!Object.keys(detected).length) {',
+  '      var bodyText = document.body.innerText || "";',
+  '      KNOWN_PPS.forEach(function(pp) {',
+  '        var idx = bodyText.indexOf(pp);',
+  '        if (idx < 0) return;',
+  '        var win = bodyText.slice(idx, idx + 300);',
+  '        var m = win.match(/\\b(\\d{1,4})\\b/);',
+  '        if (m) detected[pp] = parseInt(m[1], 10);',
+  '        var m2 = win.match(/\\b\\d{1,4}\\b.*?\\b(\\d{1,4})\\b/);',
+  '        if (m2) recommended[pp] = parseInt(m2[1], 10);',
+  '      });',
+  '    }',
+  '    return { detected: detected, recommended: recommended };',
+  '  }',
+  '',
+  '  function sendData(data) {',
+  '    var n = Object.keys(data.detected).length;',
+  '    if (!n) return false;',
+  '    var payload = { mad7: true, detected: data.detected, recommended: data.recommended, ts: Date.now() };',
+  "    try { localStorage.setItem('mad7_import_autoflow', JSON.stringify(payload)); } catch(e) { return false; }",
+  "    console.log('[MAD7 AutoFlow v2] Sent ' + n + ' PPs to localStorage');",
+  '    return true;',
+  '  }',
+  '',
+  '  function main() {',
+  '    var data = extractData();',
+  '    var n = Object.keys(data.detected).length;',
+  '    if (sendData(data)) {',
+  "      document.title = '\\u2713 MAD7 AF: ' + n + ' PPs';",
+  '    }',
+  '  }',
+  '',
+  '  // Run after initial render, then every 60s',
+  '  setTimeout(main, 3000);',
+  '  setInterval(main, REFRESH_MS);',
+  '',
+  '  // Re-run on SPA DOM updates',
+  '  var _deb;',
+  "  new MutationObserver(function() { clearTimeout(_deb); _deb = setTimeout(main, 1500); }).observe(document.body, { childList: true, subtree: true });",
+  '})();'
+].join('\n');
+
 var USERSCRIPTS = {
   bridge: {
     label: 'Unified Bridge v1.0 (REQUIRED FIRST)',
@@ -8028,6 +8113,14 @@ var USERSCRIPTS = {
     match: 'https://fclm-portal.amazon.com/reports/functionRollup*',
     description: 'Reads login aliases and JPH rates directly from the live FCLM Function Rollup HTML DOM. Auto-refreshes every 10 min. Sends data to MAD7 via BroadcastChannel + localStorage. Works alongside the bridge auto-fetch as a reliable fallback.',
     get code() { return _US_RATE_V22; }
+  },
+  autoflow: {
+    label: 'AutoFlow HC → MAD7 (v2)',
+    icon: '⚙',
+    color: '#5b6dca',
+    match: 'https://autoflow-cascade-eu.amazon.com/*',
+    description: 'Reads detected + recommended HC per process path from the AutoFlow Cascade EU dashboard and sends it to MAD7 Plan tab every 60 seconds. Keep the AutoFlow tab open — the script auto-refreshes and the Plan tab updates automatically via localStorage.',
+    get code() { return _US_AUTOFLOW_V2; }
   }
 };
 
@@ -10414,14 +10507,13 @@ function idlehShowBulkScanModal() {
   // The tool polls localStorage every second, so data arrives within ~1s either way.
   var bkltCode = 'javascript:(function(){'
     + 'var isR=/functionRollup/.test(location.pathname),isA=/activityDetails/.test(location.pathname);'
-    + 'if(!isR&&!isA){alert("MAD7: Navigate to an FCLM Activity Details or Function Rollup page");return;}'
+    + 'if(!isR&&!isA){document.title="⚠ MAD7: go to FCLM Function Rollup or Activity Details";return;}'
     + 'var pt=isR?"rollup":"activity";'
     + 'var payload=JSON.stringify({mad7:true,type:"idleh_page",pageType:pt,'
     + 'html:document.documentElement.outerHTML,url:location.href,ts:Date.now()});'
     + 'if(window.opener){try{window.opener.postMessage(JSON.parse(payload),"*");}catch(e){}}'
     + 'try{localStorage.setItem("mad7_import_idleh",payload);}catch(e){}'
     + 'document.title="✓ MAD7 Sent — switch back to the tool";'
-    + 'alert("MAD7: Data sent! Switch back to the Shift Manager tab.");'
     + '})();';
 
   var bridgeNote = hasBridge
@@ -15499,18 +15591,39 @@ function afReco(ppCode) {
   return (ppCode && AF_STATE.recommended[ppCode] != null) ? AF_STATE.recommended[ppCode] : null;
 }
 
-// AutoFlow is a JavaScript SPA — bridge HTML fetch only gets the empty shell,
-// not the dynamic table data. Use the AutoFlow v2 userscript instead.
+// Read AutoFlow data from localStorage (written by the AutoFlow v2 userscript).
+// Falls back to bridge fetch of the dashboard as a last resort.
 function afFetchLive() {
+  // 1. Check localStorage — the AutoFlow userscript writes here every 60s
+  try {
+    var raw = localStorage.getItem('mad7_import_autoflow');
+    if (raw) {
+      var d = JSON.parse(raw);
+      var det  = d.detected    || {};
+      var reco = d.recommended || {};
+      var n = Object.keys(det).length || Object.keys(reco).length;
+      if (n > 0) {
+        var ageMs  = Date.now() - (d.ts || 0);
+        var ageStr = ageMs < 90000 ? 'live' : Math.round(ageMs / 60000) + 'm ago';
+        afApply(det, 'userscript', reco);
+        afPaintBadge();
+        toast('✅ AutoFlow: ' + n + ' PPs · ' + ageStr);
+        return Promise.resolve(det);
+      }
+    }
+  } catch(e) {}
+
+  // 2. Already have in-memory state from this session
   var nDet  = Object.keys(AF_STATE.detected    || {}).length;
   var nReco = Object.keys(AF_STATE.recommended || {}).length;
   if (nDet > 0 || nReco > 0) {
     var ts = AF_STATE.fetchedAt ? AF_STATE.fetchedAt.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : '—';
-    toast('✅ AutoFlow data already loaded (' + (nReco||nDet) + ' PPs @ ' + ts + ')');
+    toast('✅ AutoFlow: ' + (nReco||nDet) + ' PPs · loaded at ' + ts);
     return Promise.resolve(AF_STATE.detected);
   }
-  // No data yet — direct user to the userscript
-  toast('Open Imports → Userscripts → ⚙ AutoFlow v2.0, install & keep the AutoFlow tab open');
+
+  // 3. Nothing in memory or localStorage — tell user to open AutoFlow tab
+  toast('⚠ AutoFlow: no data yet — open autoflow-cascade-eu.amazon.com/MAD7/dashboard (userscript will auto-send)');
   return Promise.resolve(null);
 }
 
@@ -19272,14 +19385,21 @@ function _fclmMatchFn(byFn, targetName, rateKey) {
   return null;
 }
 
-// Silent AutoFlow poll — no toast spam, calls existing afApply().
+// Silent AutoFlow poll — reads from localStorage (written by AutoFlow v2 userscript every 60s).
+// No network call — cheap, runs every 60s via livePollStart.
 function _afPollSilent() {
-  if (!bridgeIsReady()) return;
-  bridgeFetch(AF_DASHBOARD_URL, { method: 'GET' }).then(resp => {
-    if (!resp || resp.status !== 200) return;
-    const detected = afParseHtml(resp.responseText || '');
-    if (Object.keys(detected).length) afApply(detected, 'bridge');
-  }).catch(() => {});
+  try {
+    var raw = localStorage.getItem('mad7_import_autoflow');
+    if (!raw) return;
+    var d = JSON.parse(raw);
+    var det  = d.detected    || {};
+    var reco = d.recommended || {};
+    if (!Object.keys(det).length && !Object.keys(reco).length) return;
+    // Only apply if newer than what we have
+    if (AF_STATE.fetchedAt && d.ts <= AF_STATE.fetchedAt.getTime()) return;
+    afApply(det, 'userscript', reco);
+    if (typeof afPaintBadge === 'function') afPaintBadge();
+  } catch(e) {}
 }
 
 // Silent Buffer Limits poll — calls existing blApply().
@@ -19947,9 +20067,9 @@ function livePollStart() {
   packmanApiFetch();
   LIVE_POLL._ivs.floor = setInterval(packmanApiFetch, 5000);
 
-  // 5s — Overview (AutoFlow cascade headcounts)
+  // 60s — AutoFlow cascade headcounts (userscript writes to localStorage every 60s)
   _afPollSilent();
-  LIVE_POLL._ivs.overview = setInterval(_afPollSilent, 5000);
+  LIVE_POLL._ivs.overview = setInterval(_afPollSilent, 60000);
 
   // 60s — Buffer Limits
   _blPollSilent();
