@@ -1,0 +1,13 @@
+{
+  "name": "mad7-obshiftmanager-proxy",
+  "version": "0.1.0",
+  "description": "Local proxy server for MAD7 Packman API requests",
+  "main": "proxy-server.js",
+  "scripts": {
+    "serve": "node serve-static.js",
+    "proxy": "node proxy-server.js",
+    "dev": "node start-dev.js"
+  },
+  "author": "MAD7 Developer",
+  "license": "MIT"
+}

@@ -1872,10 +1872,6 @@ select.ab-lf-input{cursor:pointer}
       <div class="card-t">Worker skill lookup</div>
       <input class="inp" id="skill-lookup-input" placeholder="Type login to lookup skills…" oninput="skillLookup()" style="width:100%;margin-bottom:10px">
       <div id="skill-lookup-result" style="font-size:11px;color:var(--text3)">Enter a login above to see all their skills</div>
-      <div style="margin-top:12px;border-top:1px solid var(--bdr);padding-top:10px">
-        <div class="card-t">On floor now</div>
-        <div id="skill-floor-workers" style="font-size:11px;color:var(--text3)">Load Packman data to see floor workers</div>
-      </div>
     </div>
 
     <!-- XT CHECK Full matrix -->
@@ -3000,14 +2996,6 @@ select.ab-lf-input{cursor:pointer}
 
   </div><!-- /grid -->
 
-  <!-- ── RATE SUMMARY PANEL ── -->
-  <div id="ih-rate-summary" style="display:none;background:var(--bg2);border:1px solid rgba(245,158,11,.25);border-radius:var(--r);padding:14px 16px;margin-bottom:14px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:600;color:var(--amber)">📊 Rate summary — last import</div>
-      <div id="ih-rate-summary-ts" style="font-size:10px;color:var(--text3);font-family:monospace"></div>
-    </div>
-    <div id="ih-rate-summary-rows" style="display:flex;flex-direction:column;gap:6px"></div>
-  </div>
 
   <!-- ── UNIVERSAL SMART PASTE ── -->
   <div style="background:var(--bg2);border:1px solid var(--bdr2);border-radius:var(--r);padding:16px;margin-bottom:14px">
@@ -3928,7 +3916,7 @@ function ovRowHTML(w) {
 
   // rate
   var rateHTML = w.uph > 0
-    ? '<span style="font-size:12px;font-weight:800;font-family:monospace;color:'+(w.uph>=100?'var(--green)':w.uph>=80?'var(--amber)':'var(--red)')+'">'+Math.round(w.uph)+'%</span>'
+    ? '<span style="font-size:12px;font-weight:800;font-family:monospace;color:'+(w.uph>=100?'var(--green)':w.uph>=80?'var(--amber)':'var(--red)')+'">'+Math.round(w.uph)+'</span>'
     : '<span style="color:var(--bdr2)">—</span>';
 
   // note preview
@@ -4147,7 +4135,7 @@ function ovCardHTMLv2(w, ppCol) {
   var lastN = (w.notes||[])[0];
   var bdr   = w.onFloor ? ppCol + '55' : 'var(--bdr)';
   var rate  = w.uph > 0
-    ? '<div style="font-size:12px;font-weight:800;font-family:monospace;color:'+(w.uph>=100?'var(--green)':w.uph>=80?'var(--amber)':'var(--red)')+'">'+Math.round(w.uph)+'%</div>'
+    ? '<div style="font-size:12px;font-weight:800;font-family:monospace;color:'+(w.uph>=100?'var(--green)':w.uph>=80?'var(--amber)':'var(--red)')+'">'+Math.round(w.uph)+'</div>'
     : '';
 
   // Skill highlight: glow matched workers, dim others
@@ -7204,37 +7192,6 @@ function renderSkills() {
   // Worker lookup
   skillLookup();
 
-  // Floor workers
-  const floorEl = document.getElementById('skill-floor-workers');
-  if (floorEl) {
-    if (!onFloor.size) {
-      floorEl.innerHTML = '<div style="color:var(--text3);font-size:11px">Load Packman data first</div>';
-    } else {
-      const matched = SM_WORKERS.filter(w => onFloor.has(w.login));
-      const unmatched = onFloor.size - matched.length;
-      let h = `<div style="font-size:11px;color:var(--text2);margin-bottom:8px">${matched.length} of ${onFloor.size} matched · ${unmatched} no skill data</div>`;
-      matched.slice(0,15).forEach(w => {
-        const keySkills = w.skills.filter(s => OB_SKILLS_FULL.some(x=>x.id===s)).slice(0,3);
-        const adapt = ADAPTACIONES.find(a=>a.login===w.login);
-        h += `<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px solid var(--bdr)">
-          <img src="https://badgephotos.corp.amazon.com/?uid=${w.login}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:4px">
-              <span style="font-family:monospace;font-size:11px;font-weight:600;color:var(--green)">${w.login}</span>
-              <span style="font-size:10px;color:var(--text3)">${w.shift||''}</span>
-              ${adapt?`<span style="font-size:8px;padding:1px 4px;background:rgba(245,158,11,.2);color:var(--amber);border-radius:3px">ADAPT</span>`:''}
-            </div>
-            <div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:2px">
-              ${keySkills.map(s=>{const sk=OB_SKILLS_FULL.find(x=>x.id===s);return `<span style="font-size:9px;padding:1px 5px;background:${(sk?.col||'var(--text3)')}18;color:${sk?.col||'var(--text2)'};border-radius:3px">${sk?.label||s}</span>`;}).join('')}
-              ${w.skills.length>3?`<span style="font-size:9px;color:var(--text3)">+${w.skills.filter(s=>OB_SKILLS_FULL.some(x=>x.id===s)).length} OB skills</span>`:''}
-            </div>
-          </div>
-        </div>`;
-      });
-      if (matched.length > 15) h += `<div style="font-size:11px;color:var(--text3);padding:6px 0">+${matched.length-15} more on floor…</div>`;
-      floorEl.innerHTML = h;
-    }
-  }
 
   // XT CHECK matrix — ALL workers matching filter, paginated
   skillRenderXTMatrix(workers, onFloor);
@@ -7979,10 +7936,10 @@ var _US_RATE_V22 = JSON.parse('"// ==UserScript==\\n// @name         MAD7 · PPR
 
 var _US_AUTOFLOW_V2 = [
   '// ==UserScript==',
-  '// @name         MAD7 · AutoFlow HC → Shift Manager (v2)',
+  '// @name         MAD7 · AutoFlow HC → Shift Manager (v2.1)',
   '// @namespace    mad7-ob-shift-manager',
-  '// @version      2.0',
-  '// @description  Reads detected + recommended HC per PP from AutoFlow Cascade EU → MAD7 Plan tab. Auto-sends every 60s via localStorage.',
+  '// @version      2.1',
+  '// @description  Reads detected + recommended HC per PP from AutoFlow Cascade EU dashboard and sends to MAD7 Plan tab every 60s.',
   '// @match        https://autoflow-cascade-eu.amazon.com/*',
   '// @grant        none',
   '// @run-at       document-idle',
@@ -7990,42 +7947,40 @@ var _US_AUTOFLOW_V2 = [
   '(function () {',
   "  'use strict';",
   '  var REFRESH_MS = 60000;',
-  '  var KNOWN_PPS = [',
-  "    'PPAFE1','PPSingleMedium','PPSingleSIOBC','PPSingleNoSlam2',",
-  "    'PPSingleNoSLAM','PPSingleNoSLAM2','PPSingleMediumMix',",
-  "    'PPPickToRebin2','PPPickToRebin3','PPPickToRebin4','PPShrinkRay'",
-  '  ];',
+  '',
+  '  // Maps AutoFlow display label (col 0 of each table row) → MAD7 PP key',
+  '  var LABEL_MAP = {',
+  "    'INDUCT:PPAFE1':                   'PPAFE1_induct',",
+  "    'AFE_REBIN:PPAFE1':                'PPAFE1_rebin',",
+  "    'AFE_PACK:PPAFE1':                 'PPAFE1_pack',",
+  "    'PICK:PICK_AR':                    'PPPickArsaw',",
+  "    'PACK:PPSingleMedium':             'PPSingleMedium',",
+  "    'PACK:PPSingleSIOBC':              'PPSingleSIOBC',",
+  "    'PACK:PPSingleNoSLAM2':            'PPSingleNoSLAM2',",
+  "    'PACK:PPSingleNoSLAM':             'PPSingleNoSLAM',",
+  "    'PACK:PPSingleNoSLAMMix':          'PPSingleMediumMix',",
+  "    'P2R_PACK:PPPickToRebin2':         'PPPickToRebin2_pack',",
+  "    'P2R_PACK:PPPickToRebin3':         'PPPickToRebin3_pack',",
+  "    'P2R_PACK:PPPickToRebin4':         'PPPickToRebin4_pack',",
+  "    'P2R_PICK:PPPickToRebin2:PICK_AR': 'PPPickToRebin2_pick',",
+  "    'P2R_PICK:PPPickToRebin3:PICK_AR': 'PPPickToRebin3_pick',",
+  "    'P2R_PICK:PPPickToRebin4:PICK_AR': 'PPPickToRebin4_pick',",
+  '  };',
   '',
   '  function extractData() {',
   '    var detected = {}, recommended = {};',
-  '    // Scan all table rows and any row-like elements for PP codes',
-  "    var els = Array.from(document.querySelectorAll('tr, [class*=\"row\"], [class*=\"Row\"], [class*=\"item\"]'));",
-  '    els.forEach(function(el) {',
-  '      var text = el.innerText || el.textContent || "";',
-  '      for (var i = 0; i < KNOWN_PPS.length; i++) {',
-  '        if (text.indexOf(KNOWN_PPS[i]) >= 0) {',
-  '          var nums = text.match(/\\b(\\d{1,4})\\b/g);',
-  '          if (nums && nums.length >= 1) {',
-  '            detected[KNOWN_PPS[i]] = parseInt(nums[0], 10);',
-  '            if (nums.length >= 2) recommended[KNOWN_PPS[i]] = parseInt(nums[1], 10);',
-  '          }',
-  '          break;',
-  '        }',
-  '      }',
+  "    var rows = Array.from(document.querySelectorAll('tr'));",
+  '    rows.forEach(function(row) {',
+  "      var cells = row.querySelectorAll('td');",
+  '      if (cells.length < 2) return;',
+  "      var label = (cells[0].textContent || '').trim();",
+  '      var key = LABEL_MAP[label];',
+  '      if (!key) return;',
+  "      var detNum = parseInt((cells[1].textContent || '').trim(), 10);",
+  "      var recNum = cells.length >= 3 ? parseInt((cells[2].textContent || '').trim(), 10) : NaN;",
+  '      if (!isNaN(detNum)) detected[key] = detNum;',
+  '      if (!isNaN(recNum)) recommended[key] = recNum;',
   '    });',
-  '    // Fallback: scan full page text if table rows found nothing',
-  '    if (!Object.keys(detected).length) {',
-  '      var bodyText = document.body.innerText || "";',
-  '      KNOWN_PPS.forEach(function(pp) {',
-  '        var idx = bodyText.indexOf(pp);',
-  '        if (idx < 0) return;',
-  '        var win = bodyText.slice(idx, idx + 300);',
-  '        var m = win.match(/\\b(\\d{1,4})\\b/);',
-  '        if (m) detected[pp] = parseInt(m[1], 10);',
-  '        var m2 = win.match(/\\b\\d{1,4}\\b.*?\\b(\\d{1,4})\\b/);',
-  '        if (m2) recommended[pp] = parseInt(m2[1], 10);',
-  '      });',
-  '    }',
   '    return { detected: detected, recommended: recommended };',
   '  }',
   '',
@@ -8046,11 +8001,9 @@ var _US_AUTOFLOW_V2 = [
   '    }',
   '  }',
   '',
-  '  // Run after initial render, then every 60s',
   '  setTimeout(main, 3000);',
   '  setInterval(main, REFRESH_MS);',
   '',
-  '  // Re-run on SPA DOM updates',
   '  var _deb;',
   "  new MutationObserver(function() { clearTimeout(_deb); _deb = setTimeout(main, 1500); }).observe(document.body, { childList: true, subtree: true });",
   '})();'
@@ -13536,29 +13489,6 @@ function generateAlerts() {
   const ts = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const alerts = [];
 
-  // ── HC ──
-  const floorCounts = deriveActualsFromFloor();
-  if(floorCounts !== null) {
-    HC_PLAN.p1.forEach(p => {
-      const actual  = getActualFromPackman([p.id]) || 0;
-      const fillPct = p.plan > 0 ? Math.round((actual/p.plan)*100) : 100;
-      if(fillPct < T.hcCrit)
-        alerts.push({id:`hc-crit-${p.id}`, ts, level:'critical', type:'HC', msg:`${p.name} critically understaffed`, detail:`${actual}/${p.plan} (${fillPct}%) — need ${p.plan-actual} more`, pct:fillPct, action:`goPage('hc')`});
-      else if(fillPct < T.hcWarn)
-        alerts.push({id:`hc-warn-${p.id}`, ts, level:'warning',  type:'HC', msg:`${p.name} below plan`, detail:`${actual}/${p.plan} (${fillPct}%)`, pct:fillPct, action:`goPage('hc')`});
-    });
-    HC_PLAN.p2r.forEach(p => {
-      const actual  = getP2RActual(p.id) || 0;
-      const plan    = p.walls * p.packersPerWall;
-      const fillPct = plan > 0 ? Math.round((actual/plan)*100) : 100;
-      if(fillPct < T.hcCrit)
-        alerts.push({id:`hc-crit-${p.id}`, ts, level:'critical', type:'HC', msg:`${p.name} critically understaffed`, detail:`${actual}/${plan} (${fillPct}%) — need ${plan-actual} more`, pct:fillPct, action:`goPage('hc')`});
-      else if(fillPct < T.hcWarn)
-        alerts.push({id:`hc-warn-${p.id}`, ts, level:'warning',  type:'HC', msg:`${p.name} below plan`, detail:`${actual}/${plan} (${fillPct}%)`, pct:fillPct, action:`goPage('hc')`});
-    });
-  } else {
-    alerts.push({id:'hc-no-data', ts, level:'info', type:'HC', msg:'HC actuals not loaded', detail:'Paste Packman to enable HC monitoring', pct:null, action:`goPage('import')`});
-  }
 
   // ── Rate ──
   RATE_PROCS.forEach(proc => {
@@ -15129,19 +15059,19 @@ function renderPlan() {
     }
   }
 
-  // HC detected from AutoFlow — mirror of Process Rates rows
+  // HC detected from AutoFlow — uses keys from LABEL_MAP in userscript v2.1
   const AF_HC_ROWS = [
-    {lbl:'AFE Induct', pps:['PPAFE1']},
-    {lbl:'AFE Rebin',  pps:['PPAFE1']},
-    {lbl:'AFE Pack',   pps:['PPAFE1']},
+    {lbl:'AFE Induct', pps:['PPAFE1_induct']},
+    {lbl:'AFE Rebin',  pps:['PPAFE1_rebin']},
+    {lbl:'AFE Pack',   pps:['PPAFE1_pack']},
     {lbl:'SM',         pps:['PPSingleMedium']},
     {lbl:'SIOC',       pps:['PPSingleSIOBC']},
-    {lbl:'SNS2',       pps:['PPSingleNoSLAM2','PPSingleNoSlam2']},
+    {lbl:'SNS2',       pps:['PPSingleNoSLAM2']},
     {lbl:'SNS',        pps:['PPSingleNoSLAM']},
     {lbl:'SNSmix',     pps:['PPSingleMediumMix']},
-    {lbl:'Pick Arsaw', pps:['PPShrinkRay','PPPickArsaw']},
-    {lbl:'Pick P2R',   pps:['PPPickToRebin2','PPPickToRebin3','PPPickToRebin4']},
-    {lbl:'Pack P2R',   pps:['PPPickToRebin2','PPPickToRebin3','PPPickToRebin4']},
+    {lbl:'Pick Arsaw', pps:['PPPickArsaw']},
+    {lbl:'Pick P2R',   pps:['PPPickToRebin2_pick','PPPickToRebin3_pick','PPPickToRebin4_pick']},
+    {lbl:'Pack P2R',   pps:['PPPickToRebin2_pack','PPPickToRebin3_pack','PPPickToRebin4_pack']},
   ];
   const afHcEl = document.getElementById('plan-af-hc-body');
   if(afHcEl) {
@@ -18632,7 +18562,6 @@ function ihGetTs(id) {
 function ihSetTs(id) {
   localStorage.setItem('mad7_ih_ts_' + id, Date.now().toString());
   ihRenderFreshness();
-  if (id === 'rate') ihShowRateSummary();
 }
 
 function ihRenderFreshness() {
@@ -18709,7 +18638,7 @@ function ihUpdateFreshnessBar() {
       if (!e.data || !e.data.mad7) return;
       if (e.data.type === 'packman')   ihSetTs('packman');
       if (e.data.type === 'workforce') ihSetTs('workforce');
-      if (e.data.type === 'rate')      { ihSetTs('rate'); setTimeout(ihShowRateSummary, 300); }
+      if (e.data.type === 'rate')      ihSetTs('rate');
       if (e.data.type === 'roster')    ihSetTs('roster');
     });
   } catch(e) {}
@@ -18910,48 +18839,6 @@ function ihSmartClear() {
 }
 
 
-// ── RATE SUMMARY PANEL ────────────────────────────────────────────
-
-function ihShowRateSummary() {
-  if (typeof S === 'undefined' || !S.rateData) return;
-  var panel   = document.getElementById('ih-rate-summary');
-  var rowsDiv = document.getElementById('ih-rate-summary-rows');
-  var tsEl    = document.getElementById('ih-rate-summary-ts');
-  if (!panel || !rowsDiv) return;
-
-  var keys = Object.keys(S.rateData).filter(function(k) {
-    return S.rateData[k] && S.rateData[k].length > 0;
-  });
-  if (!keys.length) return;
-
-  panel.style.display = 'block';
-  if (tsEl) tsEl.textContent = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
-
-  var html = '';
-  keys.forEach(function(key) {
-    var rows = S.rateData[key];
-    if (!rows || !rows.length) return;
-    // avg UPH percentage (uph field or pct field)
-    var sum  = rows.reduce(function(s,r){ return s + (r.uph||r.pct||0); }, 0);
-    var avg  = sum / rows.length;
-    // pct: if values look like raw UPH (>5), normalise vs 100%; otherwise treat as pct already
-    var pct  = avg > 5 ? Math.min(150, avg) : avg * 100;
-    var bar  = Math.min(100, Math.round(pct));
-    var color = pct >= 90 ? 'var(--green)' : pct >= 65 ? 'var(--amber)' : 'var(--red)';
-    var name  = IH_PROC_NAMES[key] || key;
-
-    html += '<div style="display:flex;align-items:center;gap:10px">'
-      + '<div style="width:128px;font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0">' + name + '</div>'
-      + '<div style="flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden">'
-      + '<div style="height:100%;border-radius:2px;background:' + color + ';width:' + bar + '%"></div>'
-      + '</div>'
-      + '<div style="width:48px;text-align:right;font-size:11px;font-weight:600;font-family:monospace;color:' + color + '">' + Math.round(pct) + '%</div>'
-      + '<div style="width:28px;text-align:right;font-size:10px;color:var(--text3)">' + rows.length + 'w</div>'
-      + '</div>';
-  });
-
-  rowsDiv.innerHTML = html || '<div style="font-size:11px;color:var(--text3)">No rate data yet</div>';
-}
 
 
 // ── PACKMAN USERSCRIPT v4.0 ───────────────────────────────────────
@@ -19013,7 +18900,6 @@ if (_ihOrigGoPage) {
     _ihOrigGoPage(id);
     if (id === 'import') {
       setTimeout(ihRenderFreshness, 100);
-      setTimeout(ihShowRateSummary, 150);
     }
     if (id === 'overview') {
       // Re-apply current view so grid/list display is always in sync on tab switch.
@@ -19034,7 +18920,6 @@ document.addEventListener('visibilitychange', function() {
 
 setTimeout(function() {
   ihRenderFreshness();
-  ihShowRateSummary();
   ihSetARInterval(10); // default to 10 min selected
 }, 800);
 
