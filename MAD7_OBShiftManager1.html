@@ -3169,7 +3169,6 @@ body.theme-mango .tbl th{background:rgba(194,65,12,.05)!important;color:#9a3412!
         <div id="dot-workforce" style="width:8px;height:8px;border-radius:50%;background:var(--text3);margin-left:auto;transition:background .3s"></div>
       </div>
       <button onclick="openAndImport('workforce')" style="width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:var(--r-sm);font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Open Workforce</button>
-      <button onclick="showUserscriptModal('workforce')" style="width:100%;margin-top:6px;padding:6px;background:var(--bg3);color:var(--blue);border:1px solid rgba(59,130,246,.3);border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📥 Get userscript</button>
       <div id="bm-workforce-status" style="margin-top:6px;font-size:11px;color:var(--text3);min-height:16px;text-align:center"></div>
       <button onclick="pcHCFetch()" style="width:100%;margin-top:8px;padding:8px;background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.3);border-radius:var(--r-sm);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📊 Fetch Pick HC (area snapshot)</button>
       <div id="bm-pchc-status" style="margin-top:4px;font-size:11px;color:var(--text3);min-height:14px;text-align:center"></div>
@@ -3201,7 +3200,7 @@ body.theme-mango .tbl th{background:rgba(194,65,12,.05)!important;color:#9a3412!
         <button onclick="openRatePage('sm2')"         title="Scan Verify Small" style="flex:1;min-width:52px;padding:5px 2px;background:#8b5cf6;color:#fff;border:none;border-radius:var(--r-sm);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">SM2</button>
       </div>
       <button onclick="openAllRates()" style="width:100%;padding:6px;background:var(--bg3);color:var(--text2);border:1px solid var(--bdr);border-radius:var(--r-sm);font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:6px">⚡ Open all (12 processes)</button>
-      <button onclick="showUserscriptModal('fclm')" style="width:100%;padding:6px;background:var(--bg3);color:var(--amber);border:1px solid rgba(245,158,11,.3);border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📥 Get FCLM script v1</button>
+      <button onclick="showUserscriptModal('rate')" style="width:100%;padding:6px;background:var(--bg3);color:var(--amber);border:1px solid rgba(245,158,11,.3);border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📥 Get PPR Rate script v22</button>
       <div id="bm-rate-status" style="margin-top:6px;font-size:11px;color:var(--text3);min-height:16px;text-align:center"></div>
     </div>
 
@@ -3270,7 +3269,7 @@ body.theme-mango .tbl th{background:rgba(194,65,12,.05)!important;color:#9a3412!
     <!-- ── USERSCRIPTS HUB ── -->
   <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:16px">
     <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px">📥 Tampermonkey / Violentmonkey — Required Scripts</div>
-    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">Install all 5 below. The Bridge enables auto-fetch; Rate and Idle Auto capture live data from FCLM.</div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">Install the 3 below. Bridge enables all auto-fetch; PPR Rate and NPT Auto capture live data from FCLM.</div>
 
     <!-- Bridge install card — full width, most prominent -->
     <button onclick="showUserscriptModal('bridge')" style="width:100%;margin-bottom:10px;padding:14px 16px;background:rgba(245,158,11,.10);color:var(--amber);border:2px solid rgba(245,158,11,.5);border-radius:var(--r-sm);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;display:flex;align-items:center;gap:12px">
@@ -3293,12 +3292,6 @@ body.theme-mango .tbl th{background:rgba(194,65,12,.05)!important;color:#9a3412!
         <div style="font-weight:400;color:var(--text3);margin-top:2px;font-size:10px">Floor map · worker positions</div>
       </button>
 
-      <button onclick="showUserscriptModal('workforce')" style="padding:10px;background:rgba(59,130,246,.08);color:var(--blue);border:1px solid rgba(59,130,246,.25);border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left">
-        <div style="font-size:15px;margin-bottom:4px">🏭</div>
-        <div>Workforce v3.0</div>
-        <div style="font-weight:400;color:var(--text3);margin-top:2px;font-size:10px">Sortation HC actuals</div>
-      </button>
-
       <button onclick="showUserscriptModal('rate')" style="padding:10px;background:rgba(245,158,11,.08);color:var(--amber);border:1px solid rgba(245,158,11,.25);border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left">
         <div style="font-size:15px;margin-bottom:4px">📊</div>
         <div>PPR Rate v22</div>
@@ -3309,18 +3302,6 @@ body.theme-mango .tbl th{background:rgba(194,65,12,.05)!important;color:#9a3412!
         <div style="font-size:15px;margin-bottom:4px">⏱</div>
         <div>Idle NPT Auto v1</div>
         <div style="font-weight:400;color:var(--text3);margin-top:2px;font-size:10px">NPT % · idle tracker auto-fill</div>
-      </button>
-
-      <button onclick="showUserscriptModal('idlehunter')" style="padding:10px;background:rgba(100,116,139,.06);color:var(--text2);border:1px dashed rgba(100,116,139,.3);border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left">
-        <div style="font-size:15px;margin-bottom:4px">🕵️</div>
-        <div>Idle Hunter v1.0 <span style="font-size:9px;font-weight:400;color:var(--text3)">(optional)</span></div>
-        <div style="font-weight:400;color:var(--text3);margin-top:2px;font-size:10px">Per-AA activity gap analysis</div>
-      </button>
-
-      <button onclick="showUserscriptModal('autoflow')" style="padding:10px;background:rgba(91,109,202,.08);color:#5b6dca;border:1px solid rgba(91,109,202,.25);border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left">
-        <div style="font-size:15px;margin-bottom:4px">⚙</div>
-        <div>AutoFlow HC v2</div>
-        <div style="font-weight:400;color:var(--text3);margin-top:2px;font-size:10px">Plan tab · detected HC · 60s</div>
       </button>
 
     </div>
@@ -3336,7 +3317,6 @@ body.theme-mango .tbl th{background:rgba(194,65,12,.05)!important;color:#9a3412!
         Click each card above → a code window opens → copy the code → paste into Tampermonkey → <b>Ctrl+S</b> to save. Install in this order:<br>
         &nbsp;&nbsp;🔌 <b>Unified Bridge v1.0</b> — <b style="color:var(--amber)">INSTALL THIS FIRST</b>, enables all live data features<br>
         &nbsp;&nbsp;📦 <b>Packman v4.0</b> — auto-sends floor-map data when you open Packman<br>
-        &nbsp;&nbsp;🏭 <b>Workforce v3.0</b> — auto-sends HC actuals from the Workforce page<br>
         &nbsp;&nbsp;📊 <b>PPR Rate v22</b> — captures live JPH rates from FCLM pages<br>
         &nbsp;&nbsp;⏱ <b>Idle NPT Auto v1</b> — fills NPT % automatically from the idle tracker<br>
         <b style="color:var(--text)">Step 3 — Import data</b><br>
@@ -3359,7 +3339,6 @@ body.theme-mango .tbl th{background:rgba(194,65,12,.05)!important;color:#9a3412!
 // ── Import Hub v5 — hoisted globals (must be before any onclick can fire) ──
 var IH_SOURCES = [
   { id:'packman',   label:'Packman',   icon:'📦', dotId:'dot-packman',   staleMin:20  },
-  { id:'workforce', label:'Workforce', icon:'🏭', dotId:'dot-workforce', staleMin:30  },
   { id:'rate',      label:'Rates',     icon:'📊', dotId:'dot-rate',      staleMin:60  },
   { id:'roster',    label:'Roster',    icon:'👥', dotId:null,            staleMin:720 },
 ];
