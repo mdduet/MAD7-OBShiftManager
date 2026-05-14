@@ -4,6 +4,7 @@
   "description": "Local proxy server for MAD7 Packman API requests",
   "main": "proxy-server.js",
   "scripts": {
+    "start": "node serve-static.js",
     "serve": "node serve-static.js",
     "proxy": "node proxy-server.js",
     "dev": "node start-dev.js"
