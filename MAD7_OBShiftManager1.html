@@ -16924,9 +16924,32 @@ function loadSavedPlan() {
 }
 
 // ── Live Rodeo fetch via bridge ─────────────────────────────────────────
-// URL sourced from Excel macro: https://tiny.amazon.com/1j6mlvegr/mad7rodeo
-// Response is comma-separated (WorkPool,ProcessPath,ExSD,Quantity)
-var RODEO_LIVE_URL = 'https://tiny.amazon.com/1j6mlvegr/mad7rodeo';
+// Direct rodeo-dub.amazon.com URL — avoids tiny.amazon.com redirect that
+// GM_xmlhttpRequest cannot follow (empty responseText on 301/302).
+// Production (HTTPS) uses native fetch which auto-follows redirects, so tiny
+// URL works there; locally we must hit rodeo-dub directly.
+function _buildRodeoLiveUrl() {
+  var pools = [
+    'ReadyToPick','ReadyToPickHardCapped','ReadyToPickUnconstrained',
+    'PickingNotYetPicked','PickingNotYetPickedPrioritized',
+    'PickingNotYetPickedNotPrioritized','PickingNotYetPickedHardCapped',
+    'CrossdockNotYetPicked',
+    'PickingPicked','PickingPickedInProgress','PickingPickedInTransit',
+    'PickingPickedRouting','PickingPickedAtDestination',
+    'Inducted','RebinBuffered','Sorted',
+    'GiftWrap','Packing','Scanned',
+    'ProblemSolving','ProcessPartial','SoftwareException',
+    'Crossdock','PreSort','TransshipSorted','Palletized',
+  ].map(function(p){ return 'workPool=' + encodeURIComponent(p); }).join('&');
+  return 'https://rodeo-dub.amazon.com/MAD7/ExSD'
+    + '?yAxis=PROCESS_PATH&zAxis=WORK_POOL'
+    + '&shipmentTypes=ALL&exSDRange.quickRange=NEXT_3_DAYS'
+    + '&exSDRange.dailyStart=00%3A00&exSDRange.dailyEnd=00%3A00'
+    + '&giftOption=ALL&fulfillmentServiceClass=ALL&fracs=NON_FRACS'
+    + '&_workPool=on&' + pools
+    + '&processPath=&minPickPriority=MIN_PRIORITY&Excel=true';
+}
+var RODEO_LIVE_URL = 'https://tiny.amazon.com/1j6mlvegr/mad7rodeo'; // kept as fallback reference
 
 // All work pools that represent outstanding units per PP (full backlog = everything still in system)
 var RODEO_PICABLE_POOLS = {
@@ -16947,23 +16970,27 @@ var RODEO_PICABLE_POOLS = {
 };
 
 function _rodeoParseText(text) {
-  // Handles both comma (from tiny URL) and tab (from manual paste) delimiters
+  // Handles comma (live URL) and tab (manual paste) delimiters.
+  // Expected columns (auto-detected by header): WorkPool, ProcessPath, [ExSD], Quantity/Count
   var newRodeo = {};
   var lines = text.split(/[\r\n]+/).filter(function(l){ return l.trim(); });
   if (!lines.length) return newRodeo;
   var delim = lines[0].indexOf('\t') >= 0 ? '\t' : ',';
   var hdrs = null;
+  // Defaults match original tiny-URL CSV order: WorkPool,ProcessPath,ExSD,Quantity
   var wpIdx = 0, ppIdx = 1, qtyIdx = 3;
   lines.forEach(function(line) {
     var cols = line.split(delim).map(function(c){ return c.trim().replace(/^"|"$/g,''); });
     if (!hdrs) {
-      hdrs = cols.map(function(c){ return c.toLowerCase(); });
-      var wi = hdrs.findIndex(function(h){ return h.includes('workpool')||h==='work pool'; });
-      var pi = hdrs.findIndex(function(h){ return h.includes('processpath')||h.includes('process path'); });
-      var qi = hdrs.findIndex(function(h){ return h==='quantity'||h==='qty'||h==='count'; });
+      hdrs = cols.map(function(c){ return c.toLowerCase().replace(/\s+/g,''); });
+      // Accept many header name variants from different Rodeo export formats
+      var wi = hdrs.findIndex(function(h){ return h==='workpool'||h==='work_pool'||h==='work pool'||h.includes('workpool'); });
+      var pi = hdrs.findIndex(function(h){ return h==='processpath'||h==='process_path'||h==='process path'||h.includes('processpath'); });
+      var qi = hdrs.findIndex(function(h){ return h==='quantity'||h==='qty'||h==='count'||h==='units'||h==='total'; });
       if (wi >= 0) wpIdx = wi;
       if (pi >= 0) ppIdx = pi;
       if (qi >= 0) qtyIdx = qi;
+      console.log('[MAD7 Rodeo] CSV headers:', hdrs, '→ wp:', wpIdx, 'pp:', ppIdx, 'qty:', qtyIdx);
       return;
     }
     var wp  = (cols[wpIdx]  || '').trim();
@@ -16971,14 +16998,11 @@ function _rodeoParseText(text) {
     var qty = parseFloat((cols[qtyIdx]||'').replace(/,/g,'')) || 0;
     if (!wp || !pp) return;
     if (!newRodeo[pp]) newRodeo[pp] = {sorted:0, picablesNPP:0, picablesPP:0, picables:0};
-    // Legacy fields kept for backward compat
     if (wp === 'Sorted')                             newRodeo[pp].sorted      += qty;
     if (wp === 'PickingNotYetPickedNotPrioritized')  newRodeo[pp].picablesNPP += qty;
-    if (wp === 'PickingNotYetPickedPrioritized')      newRodeo[pp].picablesPP  += qty;
-    // Comprehensive total: every outstanding unit across all work pools
+    if (wp === 'PickingNotYetPickedPrioritized')     newRodeo[pp].picablesPP  += qty;
     if (RODEO_PICABLE_POOLS[wp])                     newRodeo[pp].picables    += qty;
   });
-  // Fallback: if no comprehensive data was captured, derive from legacy fields
   Object.keys(newRodeo).forEach(function(pp) {
     if (!newRodeo[pp].picables) {
       newRodeo[pp].picables = newRodeo[pp].picablesNPP + newRodeo[pp].picablesPP;
@@ -17009,12 +17033,23 @@ function _rodeoFetchCore(silent) {
   }
   var btn = document.getElementById('plan-rodeo-live-btn');
   if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
-  bridgeFetch(RODEO_LIVE_URL, {method:'GET'}).then(function(resp) {
-    var text = (resp && resp.responseText) || '';
-    if (!text) throw new Error('Empty response');
+  // Use direct rodeo-dub URL (in Bridge @connect) — tiny URL redirect fails on file://
+  var fetchUrl = (window.location.protocol === 'https:') ? RODEO_LIVE_URL : _buildRodeoLiveUrl();
+  console.log('[MAD7 Rodeo] fetching:', fetchUrl.slice(0, 80) + '…');
+  bridgeFetch(fetchUrl, {method:'GET'}).then(function(resp) {
+    var status = resp ? resp.status : 0;
+    var text   = (resp && resp.responseText) || '';
+    console.log('[MAD7 Rodeo] response status:', status, '| body start:', text.slice(0, 200));
+    if (!text) throw new Error('Empty response (status ' + status + ')');
+    // Detect HTML redirect / login page — rodeo returns plain CSV when authenticated
+    if (text.trimStart().startsWith('<')) {
+      console.warn('[MAD7 Rodeo] Got HTML — not authenticated or wrong endpoint. Body:', text.slice(0, 300));
+      throw new Error('Got HTML instead of CSV — check Rodeo login');
+    }
     var newRodeo = _rodeoParseText(text);
     var ppCount = Object.keys(newRodeo).length;
-    if (ppCount === 0) throw new Error('No PP data found');
+    console.log('[MAD7 Rodeo] parsed:', ppCount, 'PPs —', Object.keys(newRodeo).join(', '));
+    if (ppCount === 0) throw new Error('No PP data in CSV (check column headers)');
     Object.assign(PLAN.rodeo, newRodeo);
     FRESHNESS.rodeo = Date.now();
     updateFreshnessBadges();
@@ -17025,9 +17060,10 @@ function _rodeoFetchCore(silent) {
     if (planBadge) { planBadge.textContent = '🤠 RODEO live · ' + ts; planBadge.style.display = ''; }
     if (!silent) toast('🤠 RODEO live: ' + ppCount + ' process paths');
   }).catch(function(e) {
+    console.error('[MAD7 Rodeo] fetch failed:', e.message);
     var ts = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
     _rodeoBadgeUpdate('🤠 Rodeo: ⚠ ' + ts, false);
-    if (!silent) toast('⚠ Rodeo live fetch failed: ' + e.message + ' — use Paste RODEO instead');
+    if (!silent) toast('⚠ Rodeo fetch failed: ' + e.message);
   });
 }
 
