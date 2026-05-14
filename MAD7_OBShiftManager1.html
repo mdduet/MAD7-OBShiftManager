@@ -246,6 +246,13 @@ body.light .xls-blue {background:#cce5ff!important;color:#004085!important}
 .risk-red  {background:rgba(244,63,94,.18); color:var(--red)}
 .risk-dark {background:rgba(139,0,0,.22);   color:#ef4444}
 
+/* CPT auto-next highlight */
+.cpt-next-input{background:rgba(245,158,11,.18)!important;border-color:var(--amber)!important;box-shadow:0 0 0 2px rgba(245,158,11,.25)!important}
+.cpt-next-badge{display:inline-flex;align-items:center;gap:2px;font-size:7px;font-weight:900;color:#fff;background:var(--amber);padding:1px 4px;border-radius:3px;margin-left:4px;letter-spacing:.04em;vertical-align:middle;animation:cptBlink 2s ease-in-out infinite}
+@keyframes cptBlink{0%,100%{opacity:1}50%{opacity:.6}}
+.cpt-label-wrap{display:inline-flex;align-items:center;gap:3px;padding:2px 4px;border-radius:3px;transition:background .2s}
+.cpt-label-wrap.is-next{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3)}
+
 /* ── Theme pill nav ── */
 body.nav-pills .ntab{border-radius:20px;margin:0 2px;height:28px;padding:0 12px}
 body.nav-pills .ntab.active{background:var(--green);color:#0a1f14;border-bottom:none}
@@ -2515,19 +2522,21 @@ body.theme-truck nav{position:relative}
     <span style="font-weight:800;font-size:12px">📊 RISK PER PROCESS PATH</span>
     <span style="font-size:9px;opacity:.8">UPH = Rate × HC (or walls) · Risk = Units ÷ (UPH × h to CPT) · &gt;1 = at risk</span>
     <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <button onclick="window.open('https://rodeo-dub.amazon.com/MAD7/ExSD?yAxis=PROCESS_PATH&zAxis=WORK_POOL&shipmentTypes=ALL&exSDRange.quickRange=NEXT_3_DAYS&exSDRange.dailyStart=00%3A00&exSDRange.dailyEnd=00%3A00&giftOption=ALL&fulfillmentServiceClass=ALL&fracs=NON_FRACS&_workPool=on&workPool=ReadyToPick&workPool=ReadyToPickHardCapped&workPool=ReadyToPickUnconstrained&workPool=PickingNotYetPicked&workPool=PickingNotYetPickedPrioritized&workPool=PickingNotYetPickedNotPrioritized&workPool=PickingNotYetPickedHardCapped&workPool=CrossdockNotYetPicked&_workPool=on&workPool=PickingPicked&workPool=PickingPickedInProgress&workPool=PickingPickedInTransit&workPool=PickingPickedRouting&workPool=PickingPickedAtDestination&workPool=Inducted&workPool=RebinBuffered&workPool=Sorted&workPool=GiftWrap&workPool=Packing&workPool=Scanned&workPool=ProblemSolving&workPool=ProcessPartial&workPool=SoftwareException&workPool=Crossdock&workPool=PreSort&workPool=TransshipSorted&workPool=Palletized&_workPool=on&_workPool=on&processPath=&minPickPriority=MIN_PRIORITY&shipMethod=&shipOption=&sortCode=&fnSku=','_blank')" style="background:rgba(255,153,0,.2);border:1px solid rgba(255,153,0,.5);color:#ffd700;font-size:9px;font-weight:800;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:monospace;white-space:nowrap">🤠 Open Rodeo</button>
       <label style="font-size:9px;opacity:.9">% Risk</label>
       <input id="plan-cpt-pct" type="number" value="85" min="0" max="200" step="5" onchange="renderCPTRiskTable()" style="width:44px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);border-radius:3px;color:#ffd700;font-size:11px;font-weight:800;padding:1px 3px;outline:none;font-family:monospace;text-align:center">
       <label style="font-size:9px;opacity:.9">Date CPTs</label>
       <input id="plan-cpt-date2" type="date" onchange="renderCPTRiskTable()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);border-radius:3px;color:#ffd700;font-size:9px;padding:1px 3px;outline:none">
     </div>
   </div>
-  <div style="background:#e8f0fc;border-bottom:1px solid #c0d0f0;padding:4px 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:9px;font-weight:700;color:#1a3a7a">
+  <div style="background:#e8f0fc;border-bottom:1px solid #c0d0f0;padding:4px 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:9px;font-weight:700;color:#1a3a7a">
     <span>CPT checkpoints:</span>
-    <label>1: <input id="cpt-t1" type="time" value="02:00" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333"></label>
-    <label>2: <input id="cpt-t2" type="time" value="02:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333"></label>
-    <label>3: <input id="cpt-t3" type="time" value="03:00" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333"></label>
-    <label style="margin-left:10px;color:#7030a0">CPT All <input id="cpt-tall" type="time" value="22:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333"></label>
-    <label style="color:#155724">CPT P2R <input id="cpt-tp2r" type="time" value="22:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333"></label>
+    <label id="cpt-lbl-t1" class="cpt-label-wrap">▸1 <input id="cpt-t1" type="time" value="02:00" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <label id="cpt-lbl-t2" class="cpt-label-wrap">▸2 <input id="cpt-t2" type="time" value="02:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <label id="cpt-lbl-t3" class="cpt-label-wrap">▸3 <input id="cpt-t3" type="time" value="03:00" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <label id="cpt-lbl-tall" class="cpt-label-wrap" style="margin-left:6px;color:#7030a0">CPT All <input id="cpt-tall" type="time" value="22:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <label id="cpt-lbl-tp2r" class="cpt-label-wrap" style="color:#155724">CPT P2R <input id="cpt-tp2r" type="time" value="22:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <span id="cpt-next-info" style="margin-left:auto;font-size:8px;color:#666;font-weight:400"></span>
   </div>
   <div id="plan-cpt-risk-body" style="background:#fff;overflow-x:auto"></div>
 </div>
@@ -3274,7 +3283,25 @@ function goPage(id){
   if(!_pg) return;
   _pg.classList.add('active');
   document.querySelectorAll('.ntab').forEach(t=>{if(t.getAttribute('onclick')?.includes("'"+id+"'"))t.classList.add('active')});
+  if(id==='hc') _idleAutoInit();
   if(RENDERS[id])RENDERS[id]();
+}
+function _idleAutoInit(){
+  var shiftSel = document.getElementById('idle-shift-select');
+  var dateInp  = document.getElementById('idle-date-input');
+  if(!shiftSel||!dateInp) return;
+  // Auto-set today's date if empty
+  if(!dateInp.value){
+    var d=new Date(); var pad=function(n){return String(n).padStart(2,'0')};
+    dateInp.value = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  }
+  // Auto-detect current shift
+  var h=new Date().getHours(), m=new Date().getMinutes(), hh=h+m/60;
+  var shift = hh>=7&&hh<15?'early':hh>=15&&hh<19.75?'late':hh>=19.75&&hh<23?'latenight':'night';
+  if(shiftSel.value!==shift){
+    shiftSel.value=shift;
+    if(typeof idleUpdateDateLabel==='function') idleUpdateDateLabel();
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -16431,6 +16458,24 @@ function renderCPTRiskTable() {
     {id:'cpt-tall', lbl: fT('cpt-tall')  || '22:30', isCPT:true},
   ];
   cpts.forEach(function(c) { c.h = timeToHours(c.lbl); c.hoursTo = hoursTo(c.h); });
+  // Mark the next upcoming CPT
+  var nextIdx = -1, minDelta = Infinity;
+  cpts.forEach(function(c,i){ var d=c.h-nowH; if(d<0) d+=24; if(d<minDelta){minDelta=d;nextIdx=i;} });
+  if(nextIdx>=0) cpts[nextIdx]._isNext = true;
+  // Update the next-CPT info span
+  var infoEl = document.getElementById('cpt-next-info');
+  if(infoEl && nextIdx>=0){ var h=Math.floor(minDelta),m=Math.round((minDelta-h)*60); infoEl.textContent='▶ Next CPT in '+h+'h '+m+'m ('+cpts[nextIdx].lbl+')'; infoEl.style.color='#e67e00'; }
+  // Update label highlights
+  ['cpt-t1','cpt-t2','cpt-t3','cpt-tall','cpt-tp2r'].forEach(function(id,i){
+    var lbl=document.getElementById('cpt-lbl-'+id); var inp=document.getElementById(id);
+    if(!lbl||!inp) return;
+    var isNext = i === nextIdx;
+    lbl.classList.toggle('is-next', isNext);
+    inp.className = isNext ? 'cpt-next-input' : '';
+    var badge = lbl.querySelector('.cpt-next-badge');
+    if(badge) badge.remove();
+    if(isNext){ var b=document.createElement('span'); b.className='cpt-next-badge'; b.textContent='▶ NEXT'; lbl.appendChild(b); }
+  });
 
   var cptAllH   = timeToHours(fT('cpt-tall')  || '22:30');
   var cptP2RH   = timeToHours(fT('cpt-tp2r') || '22:30');
@@ -16470,11 +16515,14 @@ function renderCPTRiskTable() {
     return '';
   }
 
-  var hdrStyle = 'padding:2px 4px;border:1px solid #bbb;font-size:8px;font-weight:700;text-align:center;white-space:nowrap;background:#dce6f1';
+  var hdrStyle = 'padding:1px 3px;border:1px solid #bbb;font-size:7.5px;font-weight:700;text-align:center;white-space:nowrap;background:#dce6f1;max-width:60px';
   var cptHdr = cpts.map(function(c) {
-    return '<th colspan="2" style="'+hdrStyle+(c.isCPT?';background:#7030a0;color:#ffd700':'')+'">' + c.lbl + '</th>';
+    var isNext = c._isNext;
+    var nextStyle = isNext ? ';background:#e67e00;color:#fff;box-shadow:inset 0 -2px 0 #ff9900' : (c.isCPT?';background:#7030a0;color:#ffd700':'');
+    var nextBadge = isNext ? ' <span style="font-size:6px;background:#ff9900;color:#fff;padding:0 3px;border-radius:2px;vertical-align:middle">NEXT</span>' : '';
+    return '<th colspan="2" style="'+hdrStyle+nextStyle+'">' + c.lbl + nextBadge + '</th>';
   }).join('');
-  var subHdrStyle = 'padding:1px 3px;border:1px solid #ddd;font-size:8px;font-weight:600;text-align:center;background:#e8eaf6';
+  var subHdrStyle = 'padding:1px 2px;border:1px solid #ddd;font-size:7px;font-weight:600;text-align:center;background:#e8eaf6;white-space:nowrap';
   var cptSubHdr = cpts.map(function() { return '<th style="'+subHdrStyle+'">Units</th><th style="'+subHdrStyle+'">Risk</th>'; }).join('');
 
   function buildRow(pp, isP2R, groupCPTH) {
@@ -16504,18 +16552,19 @@ function renderCPTRiskTable() {
       var risk = (uph > 0 && h > 0) ? units / (uph * h) : null;
       var rBg  = risk!=null ? riskBg(risk.toFixed(2)) : '';
       var rStr = risk!=null ? fR(risk) : '-';
-      return '<td style="padding:1px 3px;border:1px solid #e8e8e8;text-align:right;font-family:monospace;font-size:9px">'
+      var nextHl = c._isNext ? ';background:rgba(230,126,0,.07)' : '';
+      return '<td style="padding:1px 2px;border:1px solid #e8e8e8;text-align:right;font-family:monospace;font-size:8px'+nextHl+'">'
         + (units ? fN(units) : '—') + '</td>'
-        + '<td style="padding:1px 3px;border:1px solid #e8e8e8;text-align:center;font-family:monospace;font-size:9px'
-        + (rBg?';background:'+rBg:'') + '">' + rStr + '</td>';
+        + '<td style="padding:1px 2px;border:1px solid #e8e8e8;text-align:center;font-family:monospace;font-size:8px'
+        + (rBg?';background:'+rBg:'') + nextHl + '">' + rStr + '</td>';
     }).join('');
     return '<tr style="background:#fff">'
-      + '<td style="padding:1px 4px;border:1px solid #e0e0e0;font-size:9px;font-weight:700;white-space:nowrap">' + pp.lbl + '</td>'
-      + '<td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-size:9px">' + Math.round(baseRate) + '</td>'
+      + '<td style="padding:1px 3px;border:1px solid #e0e0e0;font-size:8px;font-weight:700;white-space:nowrap">' + pp.lbl + '</td>'
+      + '<td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-size:8px">' + Math.round(baseRate) + '</td>'
       + '<td style="padding:1px 2px;border:1px solid #e0e0e0;background:#fffde7;text-align:center">' + ovInp + '</td>'
-      + '<td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:right;font-family:monospace;font-size:9px;font-weight:700;color:#1a3a7a">' + fN(uph) + '</td>'
+      + '<td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:right;font-family:monospace;font-size:8px;font-weight:700;color:#1a3a7a">' + fN(uph) + '</td>'
       + cells
-      + '<td style="padding:1px 4px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-size:9px;color:' + (deltHC&&deltHC[0]==='+' ? '#c0392b' : '#155724') + '">' + (deltHC||'—') + '</td>'
+      + '<td style="padding:1px 3px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-size:8px;color:' + (deltHC&&deltHC[0]==='+' ? '#c0392b' : '#155724') + '">' + (deltHC||'—') + '</td>'
       + '</tr>';
   }
 
@@ -16538,10 +16587,26 @@ function renderCPTRiskTable() {
     return cpts.map(function(c) {
       var h   = c.hoursTo;
       var ttc = turTotal>0 ? (units/turTotal - h) : null;
-      return '<td style="padding:1px 3px;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:9px;font-weight:700">'
+      var nextHl = c._isNext ? ';background:rgba(230,126,0,.07)' : '';
+      return '<td style="padding:1px 2px;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:8px;font-weight:700'+nextHl+'">'
         + (units ? fN(units) : '—') + '</td>'
-        + '<td style="padding:1px 3px;border:1px solid #ddd;text-align:center;font-family:monospace;font-size:9px;color:#888">'
+        + '<td style="padding:1px 2px;border:1px solid #ddd;text-align:center;font-family:monospace;font-size:8px;color:#888'+nextHl+'">'
         + (ttc!=null ? (ttc>0?'+':'')+ttc.toFixed(1)+'h' : '—') + '</td>';
+    }).join('');
+  }
+
+  function totalRowCells() {
+    var allPPs = regularPPs.concat(p2rPickPPs).concat(p2rPackPPs);
+    return cpts.map(function(c) {
+      var h = c.hoursTo;
+      var totalUnits = allPPs.reduce(function(s,p){ return s+rodPicables(p.code); },0);
+      var totalUPH   = regularPPs.reduce(function(s,p){ var hc=p.hcFn?p.hcFn():0; return s+(p.rate()*hc); },0)
+                     + p2rPickPPs.reduce(function(s,p){ var w=p.wallsFn?p.wallsFn():0; return s+(p.rate()*w); },0);
+      var risk = (totalUPH>0&&h>0) ? totalUnits/(totalUPH*h) : null;
+      var rBg  = risk!=null ? riskBg(risk.toFixed(2)) : '#f0f8ff';
+      var nextHl = c._isNext ? ';background:rgba(230,126,0,.12)' : '';
+      return '<td style="padding:1px 2px;border:1px solid #c0d0f0;text-align:right;font-family:monospace;font-size:8px;font-weight:900;color:#1a3a7a'+nextHl+'">'+(totalUnits?fN(totalUnits):'—')+'</td>'
+           + '<td style="padding:1px 2px;border:1px solid #c0d0f0;text-align:center;font-family:monospace;font-size:8px;font-weight:900'+(rBg?';background:'+rBg:'')+(risk>1?';color:#c0392b':'')+(nextHl)+'">'+(risk!=null?fR(risk):'-')+'</td>';
     }).join('');
   }
 
@@ -16579,6 +16644,12 @@ function renderCPTRiskTable() {
     + p2rPickPPs.map(function(p){return buildRow(p,true,cptP2RH);}).join('')
     + groupHeader('P2R pack', '#ed7d31')
     + p2rPackPPs.map(function(p){return buildRow(p,true,cptP2RH);}).join('')
+    + '<tr style="background:#dce6f1;font-weight:900">'
+      + '<td style="padding:1px 3px;border:1px solid #b0c0e0;font-size:8px;font-weight:900;color:#1a3a7a;white-space:nowrap">TOTAL</td>'
+      + '<td colspan="3" style="padding:1px 2px;border:1px solid #b0c0e0;font-size:7px;color:#555;text-align:center">All paths combined</td>'
+      + totalRowCells()
+      + '<td style="padding:1px 2px;border:1px solid #b0c0e0"></td>'
+    + '</tr>'
     + '</tbody><tfoot>'
     + footAll + footP2R
     + '<tr style="background:#f5eeff"><td colspan="' + (5 + cpts.length*2) + '" style="padding:2px 6px;border:1px solid #ddd;font-size:9px;color:#555">Date CPTs: <b style="color:#7030a0">' + cptDateStr + '</b></td></tr>'
@@ -19988,6 +20059,36 @@ var THEMES = {
     green:'#059669',amber:'#d97706',red:'#b91c1c',blue:'#1d4ed8',
     bdr:'rgba(127,29,29,.08)',bdr2:'rgba(127,29,29,.16)',
   },
+  'mad7-night': {
+    name:'MAD7 Night', group:'Amazon Special',
+    navGrad:'linear-gradient(135deg,#0a0e1a 0%,#111827 60%,#1a2235 100%)',
+    navSolid:'#0a0e1a', navText:'rgba(255,255,255,.8)', navActive:'#ff9900',
+    light:false,
+    bg:'#080c14',bg2:'#0d1220',bg3:'#131a2e',bg4:'#1a2338',bg5:'#22304a',
+    text:'#e2e8f0',text2:'#94a3b8',text3:'#475569',
+    green:'#ff9900',amber:'#fbbf24',red:'#f43f5e',blue:'#60a5fa',
+    bdr:'rgba(255,153,0,.07)',bdr2:'rgba(255,153,0,.14)',
+  },
+  'mad7-ops': {
+    name:'MAD7 Ops', group:'Amazon Special',
+    navGrad:'linear-gradient(135deg,#020f08 0%,#041a0d 50%,#062616 100%)',
+    navSolid:'#020f08', navText:'rgba(255,255,255,.8)', navActive:'#00e676',
+    light:false,
+    bg:'#040d07',bg2:'#071510',bg3:'#0c1f15',bg4:'#122a1c',bg5:'#193826',
+    text:'#b9f6ca',text2:'#69f0ae',text3:'#2e7d32',
+    green:'#00e676',amber:'#ffea00',red:'#ff1744',blue:'#00b0ff',
+    bdr:'rgba(0,230,118,.06)',bdr2:'rgba(0,230,118,.13)',
+  },
+  'mad7-dawn': {
+    name:'MAD7 Dawn', group:'Amazon Special',
+    navGrad:'linear-gradient(135deg,#ff6900 0%,#ff9900 50%,#ffb300 100%)',
+    navSolid:'#ff6900', navText:'rgba(255,255,255,.95)', navActive:'#fff',
+    light:true,
+    bg:'#fffbf5',bg2:'#ffffff',bg3:'#fff4e6',bg4:'#fde8cc',bg5:'#fcd9a8',
+    text:'#1a0a00',text2:'#7c3800',text3:'#b36000',
+    green:'#067d62',amber:'#ff6900',red:'#cc0c39',blue:'#1a4a8a',
+    bdr:'rgba(255,105,0,.09)',bdr2:'rgba(255,105,0,.18)',
+  },
 };
 
 function buildThemePresets() {
@@ -20003,43 +20104,51 @@ function buildThemePresets() {
   });
   groupOrder.forEach(function(grpName) {
     var lbl = document.createElement('div');
-    lbl.style.cssText = 'grid-column:1/-1;font-size:9px;font-weight:800;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin:8px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--bdr)';
-    lbl.textContent = grpName;
+    lbl.style.cssText = 'grid-column:1/-1;font-size:8px;font-weight:800;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin:10px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:6px';
+    lbl.innerHTML = '<span style="flex:1">'+grpName+'</span>';
     grid.appendChild(lbl);
     groups[grpName].forEach(function(id) {
       var t = THEMES[id];
-      var isActive  = id === current;
-      var accent    = t.green || '#007a5a';
-      var grad      = t.navGrad || t.navSolid || '#333';
-      var borderCol = isActive ? accent : 'var(--bdr2)';
-      var shadow    = isActive ? '0 0 0 1px '+accent+', 0 2px 10px rgba(0,0,0,.15)' : 'none';
+      var isActive = id === current;
+      var accent   = t.green || '#007a5a';
+      var grad     = t.navGrad || t.navSolid || '#333';
+      var contentBg= t.bg2 || (t.light ? '#ffffff' : '#16161a');
+      var textCol  = t.text || (t.light ? '#1d1c1d' : '#e8e8ec');
+      var borderCol= isActive ? accent : 'var(--bdr2)';
+      var shadow   = isActive ? '0 0 0 2px '+accent+',0 4px 14px rgba(0,0,0,.18)' : '0 1px 4px rgba(0,0,0,.08)';
       var card = document.createElement('div');
-      card.style.cssText = 'background:var(--bg3);border:2px solid '+borderCol+';border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:10px;box-shadow:'+shadow;
-      card.dataset.themeId = id;
-      card.dataset.accent   = accent;
-      card.dataset.border   = borderCol;
+      card.style.cssText = 'border:2px solid '+borderCol+';border-radius:10px;overflow:hidden;cursor:pointer;transition:all .18s;box-shadow:'+shadow+';position:relative';
+      card.dataset.themeId = id; card.dataset.accent = accent; card.dataset.border = borderCol;
       card.onclick = function(){ applyPresetTheme(this.dataset.themeId); };
-      card.onmouseover = function(){ this.style.borderColor=this.dataset.accent; this.style.transform='translateY(-1px)'; };
-      card.onmouseout  = function(){ this.style.borderColor=this.dataset.border; this.style.transform=''; };
-      var circle = document.createElement('div');
-      circle.style.cssText = 'width:36px;height:36px;border-radius:50%;background:'+grad+';flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.3);position:relative';
-      if(isActive) {
-        var tick = document.createElement('div');
-        tick.style.cssText = 'position:absolute;bottom:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:'+accent+';border:2px solid var(--bg2);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:900';
-        tick.textContent = '✓';
-        circle.appendChild(tick);
-      }
-      card.appendChild(circle);
-      var info = document.createElement('div');
-      var nameEl = document.createElement('div');
-      nameEl.style.cssText = 'font-size:12px;font-weight:700;color:var(--text)';
+      card.onmouseover = function(){ this.style.borderColor=this.dataset.accent;this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,.22)'; };
+      card.onmouseout  = function(){ this.style.borderColor=this.dataset.border;this.style.transform='';this.style.boxShadow=''; };
+      // Nav preview strip
+      var nav = document.createElement('div');
+      nav.style.cssText = 'height:28px;background:'+grad+';display:flex;align-items:center;padding:0 8px;gap:4px;position:relative;overflow:hidden';
+      var navInner = '<span style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5);flex-shrink:0"></span>';
+      navInner += '<span style="height:3px;border-radius:1px;background:rgba(255,255,255,.35);width:18px;margin-left:2px"></span>';
+      ['rgba(255,255,255,.4)','rgba(255,255,255,.25)','rgba(255,255,255,.2)'].forEach(function(c){
+        navInner += '<span style="height:3px;border-radius:1px;background:'+c+';width:12px"></span>';
+      });
+      if(isActive) navInner += '<span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:900;color:'+accent+';text-shadow:0 1px 3px rgba(0,0,0,.6)">✓</span>';
+      nav.innerHTML = navInner;
+      card.appendChild(nav);
+      // Content preview
+      var content = document.createElement('div');
+      content.style.cssText = 'background:'+contentBg+';padding:5px 8px 6px;display:flex;align-items:center;justify-content:space-between;gap:4px';
+      var nameEl = document.createElement('span');
+      nameEl.style.cssText = 'font-size:11px;font-weight:700;color:'+textCol+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
       nameEl.textContent = t.name;
-      var badge = document.createElement('span');
-      badge.style.cssText = 'font-size:9px;padding:1px 6px;border-radius:10px;font-weight:600;margin-top:3px;display:inline-block;'+(t.light ? 'background:rgba(0,122,90,.1);color:#007a5a' : 'background:rgba(255,255,255,.07);color:var(--text3)');
-      badge.textContent = t.light ? 'Light' : 'Dark';
-      info.appendChild(nameEl);
-      info.appendChild(badge);
-      card.appendChild(info);
+      var dots = document.createElement('span');
+      dots.style.cssText = 'display:flex;gap:3px;flex-shrink:0';
+      [accent, t.amber||'#f59e0b', t.red||'#f43f5e'].forEach(function(c){
+        var d = document.createElement('span');
+        d.style.cssText = 'width:7px;height:7px;border-radius:50%;background:'+c;
+        dots.appendChild(d);
+      });
+      content.appendChild(nameEl);
+      content.appendChild(dots);
+      card.appendChild(content);
       grid.appendChild(card);
     });
   });
