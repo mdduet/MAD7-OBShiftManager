@@ -6653,18 +6653,24 @@ function vantageOpenAndPoll() {
 // Response contains [{user_id, station_id, ...}] objects.
 function vantageApiParse(data) {
   var workers = [];
-  function collect(obj) {
+  // ctxSid: station_id inherited from a parent object (station→associates nesting pattern)
+  function collect(obj, ctxSid) {
     if (!obj || typeof obj !== 'object') return;
-    var uid = obj.user_id || obj.userId || obj.associateId || obj.associateLogin || obj.login || null;
-    var sid = obj.station_id || obj.stationId || obj.station || obj.stationName || obj.workStation || null;
+    var uid = obj.user_id || obj.userId || obj.associateId || obj.associate_id
+           || obj.associateLogin || obj.associate_login || obj.login || obj.username || null;
+    var sid = obj.station_id || obj.stationId || obj.station_name || obj.stationName
+           || obj.station || obj.workStation || obj.work_station || obj.node_id || ctxSid || null;
     if (uid != null && sid != null) {
       workers.push({ userId: String(uid), stationId: String(sid) });
       return;
     }
-    if (Array.isArray(obj)) { obj.forEach(collect); }
-    else { Object.values(obj).forEach(collect); }
+    // propagate station context down when recursing (handles station→associates nesting)
+    var nextSid = obj.station_id || obj.stationId || obj.station_name || obj.stationName
+               || obj.station || obj.workStation || obj.work_station || obj.node_id || ctxSid || null;
+    if (Array.isArray(obj)) { obj.forEach(function(item) { collect(item, nextSid); }); }
+    else { Object.values(obj).forEach(function(val) { collect(val, nextSid); }); }
   }
-  collect(data);
+  collect(data, null);
   return workers;
 }
 
@@ -6729,12 +6735,22 @@ function arsawAutoFetch(silent) {
     var stationMap = {};
     if (res[0] && res[0].responseText) {
       try {
-        var vParsed = vantageApiParse(JSON.parse(res[0].responseText));
-        console.log('[ARSAW auto] Vantage parsed', vParsed.length, 'workers');
+        var vRaw = JSON.parse(res[0].responseText);
+        var vParsed = vantageApiParse(vRaw);
+        console.log('[ARSAW auto] Vantage parsed', vParsed.length, 'workers, sample:', vParsed.slice(0,3));
+        // Debug toast: show count + sample station ID format
+        if (!silent && vParsed.length > 0) {
+          var sampleSid = vParsed[0].stationId || '?';
+          toast('✓ Vantage: ' + vParsed.length + ' workers · e.g. ' + sampleSid.slice(0, 24), 5000);
+        } else if (!silent && vParsed.length === 0 && res[0].responseText) {
+          // Show first 200 chars of raw response for debug
+          var snip = res[0].responseText.replace(/\s+/g,' ').slice(0,200);
+          toast('⚠ Vantage: 0 workers parsed. Raw: ' + snip, 10000);
+        }
         vParsed.forEach(function(w) {
           stationMap[w.userId.toLowerCase()] = w.stationId;
         });
-      } catch(e) { console.log('[ARSAW auto] Vantage parse error:', e); }
+      } catch(e) { console.log('[ARSAW auto] Vantage parse error:', e); toast('⚠ Vantage parse error: '+String(e), 6000); }
     }
     // ── Vantage P2R zones (if configured): merges into same stationMap ──
     if (res[2] && res[2].responseText) {
@@ -6835,10 +6851,17 @@ function arsawAutoFetch(silent) {
         return;
       }
 
-      // ARSAW station: look for 4-digit number; dynamically accept any 2xxx/3xxx/4xxx
-      var numMatch = sid.match(/(\d{4})/);
-      if (numMatch) {
-        var sNum = parseInt(numMatch[1], 10);
+      // ARSAW station: handle string format wsARSAW{f}_{nnn} OR bare 4-digit number
+      var sNum = 0;
+      var arsawStrMatch = sid.match(/(?:ws)?[Aa][Rr][Ss][Aa][Ww]([234])_(\d+)/i);
+      if (arsawStrMatch) {
+        // "wsARSAW2_317" → floor 2, station 317 → full station 2317
+        sNum = parseInt(arsawStrMatch[1], 10) * 1000 + parseInt(arsawStrMatch[2], 10);
+      } else {
+        var numMatch = sid.match(/(\d{4})/);
+        if (numMatch) sNum = parseInt(numMatch[1], 10);
+      }
+      if (sNum) {
         var floorGuess = Math.floor(sNum / 1000);
         if (!arsawNumToFloor[sNum] && floorGuess >= 2 && floorGuess <= 4) {
           arsawNumToFloor[sNum] = floorGuess;
@@ -6904,9 +6927,15 @@ function arsawAutoFetch(silent) {
       var pcSt = (info.pcStation || '').trim();
       if (!pcSt) return;
       seenUids[uid] = true;
-      var numMatch = pcSt.match(/(\d{4})/);
-      if (!numMatch) return;
-      var sNum = parseInt(numMatch[1], 10);
+      var sNum = 0;
+      var arsawStrMatchB = pcSt.match(/(?:ws)?[Aa][Rr][Ss][Aa][Ww]([234])_(\d+)/i);
+      if (arsawStrMatchB) {
+        sNum = parseInt(arsawStrMatchB[1], 10) * 1000 + parseInt(arsawStrMatchB[2], 10);
+      } else {
+        var numMatch = pcSt.match(/(\d{4})/);
+        if (numMatch) sNum = parseInt(numMatch[1], 10);
+      }
+      if (!sNum) return;
       var floorGuess = Math.floor(sNum / 1000);
       if (!arsawNumToFloor[sNum] && floorGuess >= 2 && floorGuess <= 4) {
         arsawNumToFloor[sNum] = floorGuess;
