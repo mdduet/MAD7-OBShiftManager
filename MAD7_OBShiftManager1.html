@@ -16601,8 +16601,15 @@ function renderCPTRiskTable() {
   var pctTarget = parseFloat(fT('plan-cpt-pct')) / 100 || 0.85;
 
   var R = PLAN.rodeo;
+  var _rodeoKeys = Object.keys(R);
   function rodPicables(code) {
-    var r = R[code] || R[code+'Mix'] || {};
+    var r = R[code];
+    if (!r) {
+      var lc = code.toLowerCase();
+      var k = _rodeoKeys.find(function(k){ return k.toLowerCase() === lc; });
+      if (k) r = R[k];
+    }
+    r = r || {};
     return r.picables || (r.picablesNPP||0) + (r.picablesPP||0);
   }
 
@@ -16610,9 +16617,9 @@ function renderCPTRiskTable() {
     {lbl:'PPAFE1',           code:'PPAFE1',           rateKey:'afe-pack', hcFn:function(){return PLAN.p1.find(function(p){return p.id==='afe';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='afe';}); return p?p.rate:1000;} },
     {lbl:'PPSingleMedium',   code:'PPSingleMedium',   rateKey:'sm',       hcFn:function(){return PLAN.p1.find(function(p){return p.id==='sm1';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='sm1';}); return p?p.rate:120;} },
     {lbl:'PPSingleSIOBC',    code:'PPSingleSIOBC',    rateKey:'siobc',    hcFn:function(){return PLAN.p1.find(function(p){return p.id==='siobc';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='siobc';}); return p?p.rate:230;} },
-    {lbl:'PPSingleNoSlam2',  code:'PPSingleNoSlam2',  rateKey:'pms',      hcFn:function(){return PLAN.p1.find(function(p){return p.id==='pms';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='pms';}); return p?p.rate:200;} },
+    {lbl:'PPSingleNoSLAM2',  code:'PPSingleNoSLAM2',  rateKey:'pms',      hcFn:function(){return PLAN.p1.find(function(p){return p.id==='pms';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='pms';}); return p?p.rate:200;} },
     {lbl:'PPSingleNoSLAM',   code:'PPSingleNoSLAM',   rateKey:'sns',      hcFn:function(){return PLAN.p1.find(function(p){return p.id==='sns';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='sns';}); return p?p.rate:400;} },
-    {lbl:'PPSingleNoSlamMix',code:'PPSingleNoSlamMix',rateKey:'sns2',     hcFn:function(){return PLAN.p1.find(function(p){return p.id==='sns2';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='sns2';}); return p?p.rate:250;} },
+    {lbl:'PPSingleNoSLAMMix',code:'PPSingleNoSLAMMix',rateKey:'sns2',     hcFn:function(){return PLAN.p1.find(function(p){return p.id==='sns2';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='sns2';}); return p?p.rate:250;} },
   ];
   var p2rPickPPs = [
     {lbl:'P2R2', code:'PPPickToRebin2', wallsFn:function(){return PLAN.p2r[0]?.walls||0;}, rate:function(){return PLAN.p2r[0]?.ratePick||340;} },
@@ -17150,10 +17157,10 @@ function loadRodeoDemo() {
     PPShrinkRay:      {sorted:0,    picablesNPP:0,    picablesPP:0},
     PPSingleMedium:   {sorted:0,    picablesNPP:3329, picablesPP:2424},
     PPSingleSIOBC:    {sorted:0,    picablesNPP:1800, picablesPP:1200},
-    PPSingleNoSlam2:  {sorted:0,    picablesNPP:2400, picablesPP:900},
+    PPSingleNoSLAM2:  {sorted:0,    picablesNPP:2400, picablesPP:900},
     PPSingleMediumMix:{sorted:1,    picablesNPP:1578, picablesPP:591},
     PPSingleNoSLAM:   {sorted:0,    picablesNPP:5148, picablesPP:1073},
-    PPSingleNoSlamMix:{sorted:1,    picablesNPP:3366, picablesPP:1638},
+    PPSingleNoSLAMMix:{sorted:1,    picablesNPP:3366, picablesPP:1638},
     PPPickToRebin2:   {sorted:1537, picablesNPP:4281, picablesPP:2346},
     PPPickToRebin3:   {sorted:1471, picablesNPP:4115, picablesPP:1969},
     PPPickToRebin4:   {sorted:1210, picablesNPP:3729, picablesPP:2677},
