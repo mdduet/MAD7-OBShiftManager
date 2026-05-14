@@ -5,6 +5,9 @@
 // @description  Single CORS bridge for MAD7 OBShiftManager. Forwards GM_xmlhttpRequest calls to the tool and relays cross-origin userscript data (AutoFlow HC, ARSAW) via GM_getValue polling.
 // @author       MAD7 Team
 // @match        file:///*
+// @match        https://shift-manager.harmony.a2z.com/*
+// @match        https://shift-manager.beta.harmony.a2z.com/*
+// @match        https://shift-manager.gamma.harmony.a2z.com/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
 // @grant        unsafeWindow
