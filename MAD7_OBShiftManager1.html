@@ -6556,10 +6556,10 @@ function pcHCFetch(silent) {
 // Userscript writes to localStorage['mad7_vantage_pickers'] → we poll here.
 // ══════════════════════════════════════════════════════════
 
-var VANTAGE_URL = 'https://vantage.amazon.com/app/fulfillment-dashboards/current-station-work?customer=AMZN&warehouse=MAD7&region=eu-west-1&zones=paKivaA02%2CpaKivaA03%2CpaKivaA04';
-// No zone filter — fetches ALL floor workers (ARSAW + P2R pick-to-rebin). Code routes them
-// into S.arsawRows or S.floorWorkers automatically based on station ID format.
-var VANTAGE_API_URL = 'https://vantage.amazon.com/api/eu-west-1/fulfillment?dataset=station_work%2Fstations_with_associate_metrics&warehouse=MAD7&region=eu-west-1';
+var VANTAGE_URL = 'https://vantage.amazon.com/app/fulfillment-dashboards/current-station-work?customer=AMZN&warehouse=MAD7&region=eu-west-1&zones=paKivaA02';
+// Zone paKivaA02 covers all ARSAW + PickToRebin workers for MAD7.
+// Station-type filtering (ARSAW / PickToRebin only) is enforced in arsawAutoFetch after parsing.
+var VANTAGE_API_URL = 'https://vantage.amazon.com/api/eu-west-1/fulfillment?dataset=station_work%2Fstations_with_associate_metrics&warehouse=MAD7&region=eu-west-1&zones=paKivaA02';
 var P2R_VANTAGE_ZONES = ''; // legacy — no longer needed (VANTAGE_API_URL now fetches all zones)
 var VANTAGE_LS_KEY   = 'mad7_vantage_pickers';
 var VANTAGE_POLL_MS  = 5000;
