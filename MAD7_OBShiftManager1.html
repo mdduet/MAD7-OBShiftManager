@@ -2624,13 +2624,17 @@ body.theme-neoncity .tbl th{background:rgba(255,0,212,.06)!important;color:rgba(
       <input id="plan-cpt-date2" type="date" onchange="renderCPTRiskTable()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);border-radius:3px;color:#ffd700;font-size:9px;padding:1px 3px;outline:none">
     </div>
   </div>
-  <div style="background:#e8f0fc;border-bottom:1px solid #c0d0f0;padding:4px 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:9px;font-weight:700;color:#1a3a7a">
+  <div style="background:#e8f0fc;border-bottom:1px solid #c0d0f0;padding:4px 8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:9px;font-weight:700;color:#1a3a7a">
     <span>CPT checkpoints:</span>
-    <label id="cpt-lbl-t1" class="cpt-label-wrap">▸1 <input id="cpt-t1" type="time" value="02:00" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
-    <label id="cpt-lbl-t2" class="cpt-label-wrap">▸2 <input id="cpt-t2" type="time" value="02:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
-    <label id="cpt-lbl-t3" class="cpt-label-wrap">▸3 <input id="cpt-t3" type="time" value="03:00" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
-    <label id="cpt-lbl-tall" class="cpt-label-wrap" style="margin-left:6px;color:#7030a0">CPT All <input id="cpt-tall" type="time" value="22:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
-    <label id="cpt-lbl-tp2r" class="cpt-label-wrap" style="color:#155724">CPT P2R <input id="cpt-tp2r" type="time" value="22:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <label id="cpt-lbl-t1" class="cpt-label-wrap">▸1 <input id="cpt-t1" type="time" value="22:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <label id="cpt-lbl-t2" class="cpt-label-wrap">▸2 <input id="cpt-t2" type="time" value="23:00" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <label id="cpt-lbl-t3" class="cpt-label-wrap">▸3 <input id="cpt-t3" type="time" value="23:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <label id="cpt-lbl-t4" class="cpt-label-wrap">▸4 <input id="cpt-t4" type="time" value="00:00" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <label id="cpt-lbl-t5" class="cpt-label-wrap">▸5 <input id="cpt-t5" type="time" value="01:00" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <label id="cpt-lbl-t6" class="cpt-label-wrap">▸6 <input id="cpt-t6" type="time" value="02:00" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <button onclick="_autoCPTInit()" title="Auto-set next 6 CPTs from current time (×30 min)" style="padding:1px 6px;background:#1a3a7a;color:#fff;border:none;border-radius:3px;font-size:8px;cursor:pointer;font-weight:700">⟳ Auto</button>
+    <label id="cpt-lbl-tall" class="cpt-label-wrap" style="margin-left:4px;color:#7030a0">All <input id="cpt-tall" type="time" value="22:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
+    <label id="cpt-lbl-tp2r" class="cpt-label-wrap" style="color:#155724">P2R <input id="cpt-tp2r" type="time" value="22:30" onchange="renderCPTRiskTable()" style="font-size:9px;padding:1px 3px;border:1px solid #bbb;border-radius:2px;font-family:monospace;background:#fff;color:#333;transition:all .2s"></label>
     <span id="cpt-next-info" style="margin-left:auto;font-size:8px;color:#666;font-weight:400"></span>
   </div>
   <div id="plan-cpt-risk-body" style="background:#fff;overflow-x:auto"></div>
@@ -3381,6 +3385,23 @@ function goPage(id){
   if(id==='hc') _idleAutoInit();
   if(RENDERS[id])RENDERS[id]();
 }
+// Auto-set 6 CPT checkpoints from current time, spaced 30 min apart
+function _autoCPTInit() {
+  var now = new Date();
+  var totalMins = now.getHours() * 60 + now.getMinutes();
+  // Start at next 30-min boundary at least 30 min from now
+  var startMins = Math.ceil((totalMins + 30) / 30) * 30;
+  for (var i = 1; i <= 6; i++) {
+    var t = (startMins + (i - 1) * 30) % 1440;
+    var hh = Math.floor(t / 60), mm = t % 60;
+    var val = String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+    var el = document.getElementById('cpt-t' + i);
+    if (el) el.value = val;
+  }
+  if (typeof renderCPTRiskTable === 'function') renderCPTRiskTable();
+  toast('CPTs auto-set: next 6 checkpoints from now');
+}
+
 function _idleAutoInit(){
   var shiftSel = document.getElementById('idle-shift-select');
   var dateInp  = document.getElementById('idle-date-input');
@@ -16547,10 +16568,13 @@ function renderCPTRiskTable() {
   }
 
   var cpts = [
-    {id:'cpt-t1',   lbl: fT('cpt-t1')   || '02:00'},
-    {id:'cpt-t2',   lbl: fT('cpt-t2')   || '02:30'},
-    {id:'cpt-t3',   lbl: fT('cpt-t3')   || '03:00'},
-    {id:'cpt-tall', lbl: fT('cpt-tall')  || '22:30', isCPT:true},
+    {id:'cpt-t1', lbl: fT('cpt-t1') || '22:30'},
+    {id:'cpt-t2', lbl: fT('cpt-t2') || '23:00'},
+    {id:'cpt-t3', lbl: fT('cpt-t3') || '23:30'},
+    {id:'cpt-t4', lbl: fT('cpt-t4') || '00:00'},
+    {id:'cpt-t5', lbl: fT('cpt-t5') || '01:00'},
+    {id:'cpt-t6', lbl: fT('cpt-t6') || '02:00'},
+    {id:'cpt-tall', lbl: fT('cpt-tall') || '22:30', isCPT:true},
   ];
   cpts.forEach(function(c) { c.h = timeToHours(c.lbl); c.hoursTo = hoursTo(c.h); });
   // Mark the next upcoming CPT
@@ -16559,9 +16583,9 @@ function renderCPTRiskTable() {
   if(nextIdx>=0) cpts[nextIdx]._isNext = true;
   // Update the next-CPT info span
   var infoEl = document.getElementById('cpt-next-info');
-  if(infoEl && nextIdx>=0){ var h=Math.floor(minDelta),m=Math.round((minDelta-h)*60); infoEl.textContent='▶ Next CPT in '+h+'h '+m+'m ('+cpts[nextIdx].lbl+')'; infoEl.style.color='#e67e00'; }
+  if(infoEl && nextIdx>=0){ var h=Math.floor(minDelta),m=Math.round((minDelta-h)*60); infoEl.textContent='▶ Next in '+h+'h '+m+'m ('+cpts[nextIdx].lbl+')'; infoEl.style.color='#e67e00'; }
   // Update label highlights
-  ['cpt-t1','cpt-t2','cpt-t3','cpt-tall','cpt-tp2r'].forEach(function(id,i){
+  ['cpt-t1','cpt-t2','cpt-t3','cpt-t4','cpt-t5','cpt-t6','cpt-tall','cpt-tp2r'].forEach(function(id,i){
     var lbl=document.getElementById('cpt-lbl-'+id); var inp=document.getElementById(id);
     if(!lbl||!inp) return;
     var isNext = i === nextIdx;
@@ -16583,12 +16607,12 @@ function renderCPTRiskTable() {
   }
 
   var regularPPs = [
-    {lbl:'AFE',  code:'PPAFE1',          rateKey:'afe-pack', hcFn:function(){return PLAN.p1.find(function(p){return p.id==='afe';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='afe';}); return p?p.rate:1000;} },
-    {lbl:'SM',   code:'PPSingleMedium',  rateKey:'sm',       hcFn:function(){return PLAN.p1.find(function(p){return p.id==='sm1';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='sm1';}); return p?p.rate:120;} },
-    {lbl:'SIOC', code:'PPSingleSIOBC',   rateKey:'siobc',    hcFn:function(){return PLAN.p1.find(function(p){return p.id==='siobc';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='siobc';}); return p?p.rate:230;} },
-    {lbl:'PMs',  code:'PPSingleNoSlam2', rateKey:'pms',      hcFn:function(){return PLAN.p1.find(function(p){return p.id==='pms';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='pms';}); return p?p.rate:200;} },
-    {lbl:'SNS',  code:'PPSingleNoSLAM',  rateKey:'sns',      hcFn:function(){return PLAN.p1.find(function(p){return p.id==='sns';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='sns';}); return p?p.rate:400;} },
-    {lbl:'SNS2', code:'PPSingleNoSlamMix',rateKey:'sns2',    hcFn:function(){return PLAN.p1.find(function(p){return p.id==='sns2';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='sns2';}); return p?p.rate:250;} },
+    {lbl:'PPAFE1',           code:'PPAFE1',           rateKey:'afe-pack', hcFn:function(){return PLAN.p1.find(function(p){return p.id==='afe';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='afe';}); return p?p.rate:1000;} },
+    {lbl:'PPSingleMedium',   code:'PPSingleMedium',   rateKey:'sm',       hcFn:function(){return PLAN.p1.find(function(p){return p.id==='sm1';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='sm1';}); return p?p.rate:120;} },
+    {lbl:'PPSingleSIOBC',    code:'PPSingleSIOBC',    rateKey:'siobc',    hcFn:function(){return PLAN.p1.find(function(p){return p.id==='siobc';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='siobc';}); return p?p.rate:230;} },
+    {lbl:'PPSingleNoSlam2',  code:'PPSingleNoSlam2',  rateKey:'pms',      hcFn:function(){return PLAN.p1.find(function(p){return p.id==='pms';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='pms';}); return p?p.rate:200;} },
+    {lbl:'PPSingleNoSLAM',   code:'PPSingleNoSLAM',   rateKey:'sns',      hcFn:function(){return PLAN.p1.find(function(p){return p.id==='sns';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='sns';}); return p?p.rate:400;} },
+    {lbl:'PPSingleNoSlamMix',code:'PPSingleNoSlamMix',rateKey:'sns2',     hcFn:function(){return PLAN.p1.find(function(p){return p.id==='sns2';})?.hc||0;}, rate:function(){var p=PLAN.p1.find(function(x){return x.id==='sns2';}); return p?p.rate:250;} },
   ];
   var p2rPickPPs = [
     {lbl:'P2R2', code:'PPPickToRebin2', wallsFn:function(){return PLAN.p2r[0]?.walls||0;}, rate:function(){return PLAN.p2r[0]?.ratePick||340;} },
@@ -22275,6 +22299,9 @@ function livePollStart() {
     if (typeof fetchRoboscoutPick === 'function') fetchRoboscoutPick();
   }, 8000);
   LIVE_POLL._ivs.roboscout = setInterval(function() { if (typeof fetchRoboscoutPick === 'function') fetchRoboscoutPick(); }, 180000);
+
+  // ── CPT checkpoints — auto-set from current time on load ────────────────
+  if (typeof _autoCPTInit === 'function') _autoCPTInit();
 
   // ── Rodeo — first fetch after 12s, then auto every 3 min ────────────────
   setTimeout(function() {
