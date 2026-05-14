@@ -3536,6 +3536,15 @@ function _autoCPTInit() {
   toast('CPTs auto-set: next 6 checkpoints from now');
 }
 
+// Populate CPT inputs from Rodeo ExSD column header times
+function _autoCPTFromRodeo(times) {
+  for (var i = 0; i < Math.min(6, times.length); i++) {
+    var el = document.getElementById('cpt-t' + (i + 1));
+    if (el) el.value = times[i];
+  }
+  if (typeof renderCPTRiskTable === 'function') renderCPTRiskTable();
+}
+
 function _idleAutoInit(){
   var shiftSel = document.getElementById('idle-shift-select');
   var dateInp  = document.getElementById('idle-date-input');
@@ -6747,6 +6756,12 @@ function arsawAutoFetch(silent) {
           var snip = res[0].responseText.replace(/\s+/g,' ').slice(0,200);
           toast('⚠ Vantage: 0 workers parsed. Raw: ' + snip, 10000);
         }
+        // Only keep ARSAW and PickToRebin/PackToRebin workers; ignore Stow, AFE, etc.
+        vParsed = vParsed.filter(function(w) {
+          var s = w.stationId;
+          return /^(?:ws)?(?:ARSAW|PickToRebin|PackToRebin)[234]_/i.test(s)
+              || /^\d{3,4}$/.test(s);
+        });
         vParsed.forEach(function(w) {
           stationMap[w.userId.toLowerCase()] = w.stationId;
         });
@@ -15981,7 +15996,7 @@ function setRodeoStatus(msg, col) {
 // ── Build one vertical Q column (Excel-faithful) ────────────────────────
 function buildPlanCol(opts) {
   const {label,hdrBg,hdrTime,p1Arr,p2rArr,arrKey,p2rKey,ar,arPlan,pickRate,isCurrent,perKey,timeStart,timeEnd} = opts;
-  const {liveRate,rodPic,afDet,blFor,fN,fD,fPct,riskCol,inp,tiempo} = opts;
+  const {liveRate,rodPic,afDet,blFor,fN,fD,fPct,riskCol,propCol,inp,tiempo} = opts;
   const extraPickHC   = opts.extraPickHC   || 0;
   const extraPickRate = opts.extraPickRate  || 0;
 
@@ -16026,7 +16041,7 @@ function buildPlanCol(opts) {
       if(p.hc < af*0.85)      {hcBg='#f8d7da';hcCol='#c0392b';}
       else if(p.hc < af*0.95) {hcBg='#fff3cd';hcCol='#856404';}
     }
-    const rcBL=riskCol(pctBL), rcTUR=riskCol(pctTUR);
+    const rcBL=propCol(pctBL), rcTUR=propCol(pctTUR);
     const hcInp   = inp(p.hc,  `PLAN.${arrKey}[${i}].hc=parseInt(this.value)||0;renderPlan()`,   26, hcCol, hcBg);
     const rateInp = inp(rate,  `PLAN.${arrKey}[${i}].rate=parseInt(this.value)||${rate};renderPlan()`, 34, '#333', 'transparent');
     const minVal  = (bl && bl.min != null && bl.min !== '—') ? Math.round(Number(bl.min) * p.hc) : null;
@@ -16054,7 +16069,7 @@ function buildPlanCol(opts) {
     const pic  = rodPic(p.code || p.id);
     const pctBL  = grandPic ? pic/grandPic : 0;
     const pctTUR = grandTUR ? tur/grandTUR : 0;
-    const rcBL=riskCol(pctBL), rcTUR=riskCol(pctTUR);
+    const rcBL=propCol(pctBL), rcTUR=propCol(pctTUR);
     const wInp  = inp(p.walls,    `PLAN.${p2rKey}[${i}].walls=parseInt(this.value)||0;renderPlan()`,    24, '#c0392b', '#d4edda');
     const pkInp = inp(p.packers,  `PLAN.${p2rKey}[${i}].packers=parseInt(this.value)||0;renderPlan()`,  26, '#1264a3', '#dce6f1');
     const rInp  = inp(p.ratePick, `PLAN.${p2rKey}[${i}].ratePick=parseInt(this.value)||330;renderPlan()`, 34, '#333', 'transparent');
@@ -16341,6 +16356,13 @@ function renderPlan() {
     if(pct > 0.05) return {bg:'#fff3cd',col:'#856404'};   // yellow 5-10%
     return {bg:'#d9ead3',col:'#155724'};                   // green ≤5%
   };
+  // For proportion columns (%BL/%TUR): high share = green (valuable PP), low share = red
+  const propCol = pct => {
+    if(pct > 0.30) return {bg:'#d9ead3',col:'#155724'};   // green >30%
+    if(pct > 0.10) return {bg:'#fff3cd',col:'#856404'};   // yellow 10-30%
+    if(pct > 0.05) return {bg:'#ffe0b2',col:'#e65100'};   // orange 5-10%
+    return {bg:'#f4cccc',col:'#c0392b'};                   // red ≤5%
+  };
 
   // ── Detect current shift from system clock ──────────────
   const _h = new Date().getHours() + new Date().getMinutes()/60;
@@ -16356,7 +16378,7 @@ function renderPlan() {
   // ── Build vertical Q columns ─────────────────────────────
   const PA = PLAN.perAR;
   const tiempo  = parseFloat(document.getElementById('plan-tiempo')?.value) || PLAN.wip?.tiempo || 45;
-  const colOpts = {liveRate, rodPic, afDet, blFor, fN, fD, fPct, riskCol, inp, tiempo};
+  const colOpts = {liveRate, rodPic, afDet, blFor, fN, fD, fPct, riskCol, propCol, inp, tiempo};
 
   const q1ColEl = document.getElementById('plan-col-q1');
   if(q1ColEl) q1ColEl.innerHTML = buildPlanCol({...colOpts,
@@ -17242,6 +17264,20 @@ function _rodeoParseHtml(html) {
       }
     });
 
+    // Extract CPT time labels from column headers of the first table found
+    var cptTimes = [];
+    var firstTbl = doc.querySelector('table[id$="Table"]');
+    if (firstTbl) {
+      var hdrRow = firstTbl.querySelector('tr.header-row, thead tr');
+      if (hdrRow) {
+        Array.from(hdrRow.querySelectorAll('th, td')).forEach(function(cell) {
+          var m = (cell.textContent || '').match(/\b(\d{1,2}):(\d{2})\b/);
+          if (m) cptTimes.push(m[0]);
+        });
+      }
+    }
+    if (cptTimes.length > 0) result._cptTimes = cptTimes;
+
   } catch(e) {
     console.error('[MAD7 Rodeo] HTML parse error:', e.message);
   }
@@ -17315,10 +17351,13 @@ function _rodeoFetchCore(silent) {
     console.log('[MAD7 Rodeo] response status:', status, '| body length:', text.length);
     if (!text) throw new Error('Empty response (status ' + status + ')');
     var newRodeo = _rodeoParseHtml(text);
+    var _cptTimes = newRodeo._cptTimes || [];
+    delete newRodeo._cptTimes;
     var ppCount = Object.keys(newRodeo).length;
     console.log('[MAD7 Rodeo] parsed:', ppCount, 'PPs —', Object.keys(newRodeo).join(', '));
     if (ppCount === 0) throw new Error('No PP data parsed — check Rodeo authentication');
     Object.assign(PLAN.rodeo, newRodeo);
+    if (_cptTimes.length > 0) _autoCPTFromRodeo(_cptTimes);
     FRESHNESS.rodeo = Date.now();
     updateFreshnessBadges();
     renderPlan();
