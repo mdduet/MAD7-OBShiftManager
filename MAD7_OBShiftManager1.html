@@ -1243,6 +1243,7 @@ body.theme-neoncity .tbl th{background:rgba(255,0,212,.06)!important;color:rgba(
   <span id="fb-autoflow"  class="fb-badge fb-none" onclick="afApiShowConfig()" title="Click to configure AutoFlow URL" style="cursor:pointer">⚙ AutoFlow: —</span>
   <span id="fb-rate"      class="fb-badge fb-none">📊 Rate: —</span>
   <span id="fb-arsaw"     class="fb-badge fb-none">🤖 Roboscout: —</span>
+  <span id="fb-rodeo"     class="fb-badge fb-none" onclick="rodeoAutoFetchNow()" title="Click to refresh Rodeo data · auto every 3 min" style="cursor:pointer">🤠 Rodeo: —</span>
   <span id="fb-refresh"   style="font-size:10px;color:var(--text3);margin-left:auto"></span>
   <span style="font-size:10px;color:var(--text3)" title="Keyboard shortcuts: 1-9 tabs · R refresh · A alerts · H handover · S save · D dark mode">⌨ shortcuts</span>
 </div>
@@ -2440,7 +2441,8 @@ body.theme-neoncity .tbl th{background:rgba(255,0,212,.06)!important;color:rgba(
 
 <!-- Action bar -->
 <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
-  <button onclick="loadRodeoDemo()" style="padding:5px 14px;background:#cc7700;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">🤠 RODEO</button>
+  <button onclick="loadRodeoDemo()" style="padding:5px 10px;background:#cc7700;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">🤠 RODEO</button>
+  <button id="plan-rodeo-live-btn" onclick="rodeoAutoFetchNow()" style="padding:5px 10px;background:#a05500;color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif" title="Fetch live Rodeo data via Bridge (auto every 3 min)">🔴 Live</button>
   <button onclick="midwayRefresh()" style="padding:5px 12px;background:#c0392b;color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">MIDWAY REFRESH</button>
   <button onclick="planAFButtonClick()" id="plan-af-fetch-btn" style="padding:5px 12px;background:#5b6dca;color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif" title="Fetch AutoFlow detected values via the MAD7 Bridge userscript">⚙ AutoFlow</button>
   <button onclick="planBLButtonClick()" id="plan-bl-fetch-btn" style="padding:5px 12px;background:#7030a0;color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif" title="Fetch buffer Min/Max from milano-dev-tools via the MAD7 Bridge">📐 Buffer Limits</button>
@@ -16646,9 +16648,9 @@ function renderCPTRiskTable() {
       var rBg  = risk!=null ? riskBg(risk.toFixed(2)) : '';
       var rStr = risk!=null ? fR(risk) : '-';
       var nextHl = c._isNext ? ';background:rgba(230,126,0,.07)' : '';
-      return '<td style="padding:1px 2px;border:1px solid #e8e8e8;text-align:right;font-family:monospace;font-size:8px'+nextHl+'">'
+      return '<td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:right;font-family:monospace;font-size:9px'+nextHl+'">'
         + (units ? fN(units) : '—') + '</td>'
-        + '<td style="padding:1px 2px;border:1px solid #e8e8e8;text-align:center;font-family:monospace;font-size:8px'
+        + '<td style="padding:1px 2px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-size:9px'
         + (rBg?';background:'+rBg:'') + nextHl + '">' + rStr + '</td>';
     }).join('');
     return '<tr style="background:#fff">'
@@ -16986,9 +16988,23 @@ function _rodeoParseText(text) {
 }
 
 function rodeoLiveFetch() {
+  rodeoAutoFetchNow();
+}
+
+// ── Rodeo auto-fetch: every 3 min, mirrors AutoFlow pattern ─────────────
+var RODEO_AUTO_TIMER = null;
+
+function _rodeoBadgeUpdate(text, fresh) {
+  var b = document.getElementById('fb-rodeo');
+  if (b) { b.textContent = text; b.className = 'fb-badge ' + (fresh ? 'fb-fresh' : 'fb-stale'); }
+  var btn = document.getElementById('plan-rodeo-live-btn');
+  if (btn) { btn.textContent = fresh ? '🔴 Live' : '⚠ Retry'; btn.disabled = false; }
+}
+
+function _rodeoFetchCore(silent) {
   if (!bridgeIsReady()) {
-    toast('⚠ Bridge needed for live RODEO — paste manually instead');
-    toggleRodeoPanel();
+    if (!silent) { toast('⚠ Bridge needed for live RODEO — paste manually instead'); toggleRodeoPanel(); }
+    _rodeoBadgeUpdate('🤠 Rodeo: No Bridge', false);
     return;
   }
   var btn = document.getElementById('plan-rodeo-live-btn');
@@ -16998,17 +17014,32 @@ function rodeoLiveFetch() {
     if (!text) throw new Error('Empty response');
     var newRodeo = _rodeoParseText(text);
     var ppCount = Object.keys(newRodeo).length;
-    if (ppCount === 0) throw new Error('No PP data found — try Paste RODEO');
+    if (ppCount === 0) throw new Error('No PP data found');
     Object.assign(PLAN.rodeo, newRodeo);
+    FRESHNESS.rodeo = Date.now();
+    updateFreshnessBadges();
     renderPlan();
-    toast('🤠 RODEO live: ' + ppCount + ' process paths');
-    var badge = document.getElementById('plan-rodeo-badge');
-    if (badge) { badge.textContent = '🤠 RODEO live'; badge.style.display = ''; }
-    if (btn) { btn.textContent = '🔴 Live'; btn.disabled = false; }
+    var ts = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+    _rodeoBadgeUpdate('🤠 Rodeo: ' + ppCount + ' PPs · ' + ts, true);
+    var planBadge = document.getElementById('plan-rodeo-badge');
+    if (planBadge) { planBadge.textContent = '🤠 RODEO live · ' + ts; planBadge.style.display = ''; }
+    if (!silent) toast('🤠 RODEO live: ' + ppCount + ' process paths');
   }).catch(function(e) {
-    toast('⚠ Rodeo live fetch failed: ' + e.message + ' — use Paste RODEO instead');
-    if (btn) { btn.textContent = '🔴 Live'; btn.disabled = false; }
+    var ts = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+    _rodeoBadgeUpdate('🤠 Rodeo: ⚠ ' + ts, false);
+    if (!silent) toast('⚠ Rodeo live fetch failed: ' + e.message + ' — use Paste RODEO instead');
   });
+}
+
+function rodeoAutoFetchNow() {
+  _rodeoFetchCore(false);
+}
+
+function rodeoStartAuto() {
+  if (RODEO_AUTO_TIMER) clearInterval(RODEO_AUTO_TIMER);
+  _rodeoFetchCore(false);
+  RODEO_AUTO_TIMER = setInterval(function() { _rodeoFetchCore(true); }, 3 * 60 * 1000);
+  console.log('[MAD7 Rodeo] Auto-fetch started (3 min interval)');
 }
 
 function loadRodeoDemo() {
@@ -19881,11 +19912,11 @@ function attRenderStatus() {
 // ══════════════════════════════════════════════════════════
 
 // Track when each data source was last imported
-const FRESHNESS = {packman:0, workforce:0, autoflow:0, rate:0, arsaw:0, roboscout:0};
+const FRESHNESS = {packman:0, workforce:0, autoflow:0, rate:0, arsaw:0, roboscout:0, rodeo:0};
 
 function updateFreshnessBadges() {
-  const labels = {packman:'📦 Packman', workforce:'🏭 Workforce', autoflow:'⚙ AutoFlow', rate:'📊 Rate', arsaw:'🤖 Roboscout', roboscout:'🤖 Roboscout'};
-  const ids    = {packman:'fb-packman', workforce:'fb-workforce', autoflow:'fb-autoflow', rate:'fb-rate', arsaw:'fb-arsaw', roboscout:'fb-arsaw'};
+  const labels = {packman:'📦 Packman', workforce:'🏭 Workforce', autoflow:'⚙ AutoFlow', rate:'📊 Rate', arsaw:'🤖 Roboscout', roboscout:'🤖 Roboscout', rodeo:'🤠 Rodeo'};
+  const ids    = {packman:'fb-packman', workforce:'fb-workforce', autoflow:'fb-autoflow', rate:'fb-rate', arsaw:'fb-arsaw', roboscout:'fb-arsaw', rodeo:'fb-rodeo'};
   Object.entries(FRESHNESS).forEach(([key, ts]) => {
     const el = document.getElementById(ids[key]);
     if(!el) return;
@@ -22166,6 +22197,12 @@ function livePollStart() {
     if (typeof fetchRoboscoutPick === 'function') fetchRoboscoutPick();
   }, 8000);
   LIVE_POLL._ivs.roboscout = setInterval(function() { if (typeof fetchRoboscoutPick === 'function') fetchRoboscoutPick(); }, 180000);
+
+  // ── Rodeo — first fetch after 12s, then auto every 3 min ────────────────
+  setTimeout(function() {
+    console.log('[MAD7 Live] Starting Rodeo auto-poll');
+    if (typeof rodeoStartAuto === 'function') rodeoStartAuto();
+  }, 12000);
 
   // ── Workforce Connection — first fetch visible, then every 3m ───────────
   setTimeout(function() {
